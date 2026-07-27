@@ -1,6 +1,3 @@
-আমাদের ল্যাঙ্গুয়েজ প্র্যাক্টিস প্লাটফর্মে আপনাকে স্বাগতম
-
-HTML
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,16 +5,52 @@ HTML
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>1-on-1 Video Chat</title>
   <style>
-    body { font-family: sans-serif; text-align: center; background: #f4f4f9; padding: 20px; }
-    .auth-box { margin-bottom: 20px; padding: 10px; background: #fff; border-radius: 8px; display: inline-block; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    .filter-box { margin-bottom: 15px; }
-    select, button { padding: 8px 12px; margin: 5px; font-size: 16px; cursor: pointer; }
-    .video-grid { display: flex; justify-content: center; gap: 20px; margin-top: 20px; }
-    video { width: 320px; height: 240px; background: #000; border-radius: 8px; }
-    .hidden { display: none; }
+    body { 
+      font-family: sans-serif; 
+      text-align: center; 
+      background: #f4f4f9; 
+      padding: 20px; 
+    }
+    .auth-box { 
+      margin-bottom: 20px; 
+      padding: 10px; 
+      background: #fff; 
+      border-radius: 8px; 
+      display: inline-block; 
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+    }
+    .filter-box { 
+      margin-bottom: 15px; 
+    }
+    select, button { 
+      padding: 8px 12px; 
+      margin: 5px; 
+      font-size: 16px; 
+      cursor: pointer; 
+    }
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    .video-grid { 
+      display: flex; 
+      justify-content: center; 
+      gap: 20px; 
+      margin-top: 20px; 
+    }
+    video { 
+      width: 320px; 
+      height: 240px; 
+      background: #000; 
+      border-radius: 8px; 
+      object-fit: cover;
+    }
+    .hidden { 
+      display: none !important; 
+    }
   </style>
 
-  <!-- Firebase SDKs -->
+  <!-- Firebase SDKs (Compat Version) -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 </head>
@@ -37,25 +70,25 @@ HTML
   </div>
 
   <div class="filter-box">
-    <label>Language:</label>
+    <label for="languageSelect">Language:</label>
     <select id="languageSelect">
       <option value="English">English</option>
       <option value="Spanish">Spanish</option>
       <option value="German">German</option>
     </select>
 
-    <label>Country:</label>
+    <label for="countrySelect">Country:</label>
     <select id="countrySelect">
       <option value="Any">Global (Any Country)</option>
       <option value="Bangladesh">Bangladesh</option>
       <option value="USA">USA</option>
     </select>
 
-    <button id="startBtn">Start</button>
+    <button id="startBtn" disabled>Start</button>
     <button id="nextBtn" disabled>Next</button>
   </div>
 
-  <h3 id="status">Click Start to find a partner</h3>
+  <h3 id="status">Please sign in with Google to start</h3>
 
   <div class="video-grid">
     <div>
@@ -68,6 +101,7 @@ HTML
     </div>
   </div>
 
+  <!-- Socket.io & Custom Logic Script -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="script.js"></script>
 </body>
