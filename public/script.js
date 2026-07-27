@@ -10,52 +10,13 @@ const firebaseConfig = {
 };
 
 // 2. Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 const auth = firebase.auth();
 const provider = new firebase.auth.GoogleAuthProvider();
 
-// 3. Login & Logout Functions (Fixed with Redirect to avoid COOP errors)
-function handleGoogleLogin() {
-  auth.signInWithRedirect(provider);
-}
-
-function handleLogout() {
-  auth.signOut().catch((error) => console.error("Logout Error:", error));
-}
-
-// 4. Handle Redirect Result (For Redirect Login Flow)
-auth.getRedirectResult().then((result) => {
-  if (result.user) {
-    console.log("Logged in successfully via redirect:", result.user);
-  }
-}).catch((error) => {
-  console.error("Redirect Login Error:", error);
-});
-
-// 5. Monitor Auth State Changes
-auth.onAuthStateChanged((user) => {
-  const loggedOutUI = document.getElementById('loggedOutUI');
-  const loggedInUI = document.getElementById('loggedInUI');
-  const userName = document.getElementById('userName');
-
-  if (user) {
-    if (loggedOutUI) loggedOutUI.classList.add('hidden');
-    if (loggedInUI) loggedInUI.classList.remove('hidden');
-    if (userName) userName.innerText = `Logged in as: ${user.displayName}`;
-    
-    // ইউজার লগইন করলে Start বাটন এনাবল হবে
-    if (startBtn) startBtn.disabled = false;
-  } else {
-    if (loggedOutUI) loggedOutUI.classList.remove('hidden');
-    if (loggedInUI) loggedInUI.classList.add('hidden');
-    
-    // লগআউট অবস্থায় Start বাটন ডিজেবল থাকবে
-    if (startBtn) startBtn.disabled = true;
-  }
-});
-
-const socket = io();
-
+// DOM Elements
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
 const startBtn = document.getElementById('startBtn');
@@ -63,7 +24,93 @@ const nextBtn = document.getElementById('nextBtn');
 const statusText = document.getElementById('status');
 const languageSelect = document.getElementById('languageSelect');
 const countrySelect = document.getElementById('countrySelect');
+const loggedOutUI = document.getElementById('loggedOutUI');
+const loggedInUI = document.getElementById('loggedInUI');
+const userName = document.getElementById('userName');
 
+// 3. Login & Logout Functions (Fixed with Fallback)
+async function handleGoogleLogin() {
+  try {
+    console.log("Attempting Popup Login...");
+    await auth.signInWithPopup(provider);
+  } catch (error) {
+    console.warn("Popup blocked or failed, switching to Redirect flow:", error);
+    try {
+      await auth.signInWithRedirect(provider);
+    } catch (redirectErr) {
+      console.error("Login Failed completely:", redirectErr);
+      alert("Login failed: " + redirectErr.message);
+    }
+  }
+}
+
+function handleLogout() {
+  auth.signOut()
+    .then(() => {
+      console.log("User signed out successfully");
+    })
+    .catch((error) => console.error("Logout Error:", error));
+}
+
+// Window Global Scope-এ ফাংশন দুটি এক্সপোজ করা (HTML inline onclick-এর জন্য)
+window.handleGoogleLogin = handleGoogleLogin;
+window.handleLogout = handleLogout;
+
+// Handle Redirect Login Result (যদি Redirect ব্যবহৃত হয়)
+auth.getRedirectResult().catch((error) => {
+  if (error && error.code) {
+    console.error("Redirect Result Error:", error);
+  }
+});
+
+// 4. Monitor Auth State Changes (UI & Button Controls)
+auth.onAuthStateChanged((user) => {
+  if (user) {
+    console.log("User logged in:", user.displayName);
+    
+    // UI Switch
+    if (loggedOutUI) loggedOutUI.classList.add('hidden');
+    if (loggedInUI) loggedInUI.classList.remove('hidden');
+    if (userName) userName.innerText = `Logged in as: ${user.displayName}`;
+    
+    // Enable Start Button
+    if (startBtn) {
+      startBtn.disabled = false;
+      startBtn.style.cursor = "pointer";
+    }
+    if (statusText) statusText.innerText = 'Click Start to find a partner';
+
+  } else {
+    console.log("No user logged in");
+    
+    // UI Switch
+    if (loggedOutUI) loggedOutUI.classList.remove('hidden');
+    if (loggedInUI) loggedInUI.classList.add('hidden');
+    
+    // Disable Start Button
+    if (startBtn) {
+      startBtn.disabled = true;
+      startBtn.style.cursor = "not-allowed";
+    }
+    if (statusText) statusText.innerText = 'Please sign in with Google to start';
+  }
+});
+
+// 5. Direct Event Listeners (DOM Loaded Guard)
+document.addEventListener('DOMContentLoaded', () => {
+  const loginBtn = document.getElementById('loginBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+
+  if (loginBtn) {
+    loginBtn.addEventListener('click', handleGoogleLogin);
+  }
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', handleLogout);
+  }
+});
+
+// 6. WebRTC & Socket.io Matchmaking Logic
+const socket = io();
 let localStream = null;
 let peerConnection = null;
 let currentRoomId = null;
@@ -85,28 +132,28 @@ const rtcConfig = {
   ]
 };
 
-// ১. ক্যামেরা ও মাইক পারমিশন সেটআপ
+// camera Setup
 async function setupMedia() {
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    localVideo.srcObject = localStream;
+    if (localVideo) localVideo.srcObject = localStream;
   } catch (err) {
     console.error('Camera/Mic Error:', err);
-    if (statusText) statusText.innerText = 'Camera or Microphone permission denied!';
+    if (statusText) statusText.innerText = 'Camera/Microphone permission denied!';
   }
 }
 
 setupMedia();
 
-// ২. Start বাটন
+// Start Button Handler
 if (startBtn) {
   startBtn.addEventListener('click', () => {
     if (!localStream) {
       alert("Please allow camera and microphone access first!");
       return;
     }
-    const language = languageSelect.value;
-    const country = countrySelect.value;
+    const language = languageSelect ? languageSelect.value : 'English';
+    const country = countrySelect ? countrySelect.value : 'Any';
 
     socket.emit('find-match', { language, country });
     startBtn.disabled = true;
@@ -115,7 +162,7 @@ if (startBtn) {
   });
 }
 
-// ৩. Next বাটন
+// Next Button Handler
 if (nextBtn) {
   nextBtn.addEventListener('click', () => {
     closePeerConnection();
@@ -124,11 +171,11 @@ if (nextBtn) {
   });
 }
 
+// Socket Events
 socket.on('waiting', (msg) => {
   if (statusText) statusText.innerText = msg;
 });
 
-// ৪. Match Found
 socket.on('match-found', async ({ roomId, isInitiator }) => {
   currentRoomId = roomId;
   if (statusText) statusText.innerText = 'Connected with a partner!';
@@ -146,7 +193,6 @@ socket.on('match-found', async ({ roomId, isInitiator }) => {
   }
 });
 
-// ৫. Signaling Data (WebRTC Handshake)
 socket.on('signal', async ({ signal }) => {
   if (!peerConnection) createPeerConnection();
 
@@ -187,9 +233,8 @@ async function processPendingCandidates() {
   pendingCandidates = [];
 }
 
-// ৬. Peer Connection তৈরি
 function createPeerConnection() {
-  closePeerConnection(); // পুরোনো কানেকশন থাকলে ক্লিনআপ করা
+  closePeerConnection();
 
   peerConnection = new RTCPeerConnection(rtcConfig);
 
@@ -200,7 +245,7 @@ function createPeerConnection() {
   }
 
   peerConnection.ontrack = (event) => {
-    if (event.streams && event.streams[0]) {
+    if (event.streams && event.streams[0] && remoteVideo) {
       remoteVideo.srcObject = event.streams[0];
     }
   };
@@ -212,7 +257,6 @@ function createPeerConnection() {
   };
 }
 
-// ৭. কানেকশন ক্লোজ করা
 function closePeerConnection() {
   if (peerConnection) {
     peerConnection.ontrack = null;
@@ -227,13 +271,11 @@ function closePeerConnection() {
   pendingCandidates = [];
 }
 
-// ৮. Rematch
 socket.on('start-rematch', ({ language, country }) => {
   closePeerConnection();
   socket.emit('find-match', { language, country });
 });
 
-// ৯. Peer Disconnect
 socket.on('peer-disconnected', () => {
   closePeerConnection();
   if (statusText) statusText.innerText = 'Partner left. Click Next to continue.';
