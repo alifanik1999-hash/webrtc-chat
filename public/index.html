@@ -3,106 +3,68 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>1-on-1 Video Chat</title>
-  <style>
-    body { 
-      font-family: sans-serif; 
-      text-align: center; 
-      background: #f4f4f9; 
-      padding: 20px; 
-    }
-    .auth-box { 
-      margin-bottom: 20px; 
-      padding: 10px; 
-      background: #fff; 
-      border-radius: 8px; 
-      display: inline-block; 
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
-    }
-    .filter-box { 
-      margin-bottom: 15px; 
-    }
-    select, button { 
-      padding: 8px 12px; 
-      margin: 5px; 
-      font-size: 16px; 
-      cursor: pointer; 
-    }
-    button:disabled {
-      cursor: not-allowed;
-      opacity: 0.6;
-    }
-    .video-grid { 
-      display: flex; 
-      justify-content: center; 
-      gap: 20px; 
-      margin-top: 20px; 
-    }
-    video { 
-      width: 320px; 
-      height: 240px; 
-      background: #000; 
-      border-radius: 8px; 
-      object-fit: cover;
-    }
-    .hidden { 
-      display: none !important; 
-    }
-  </style>
+  <title>1-on-1 Language Exchange</title>
+  
+  <!-- CSS Link -->
+  <link rel="stylesheet" href="style.css">
 
-  <!-- Firebase SDKs (Compat Version) -->
+  <!-- Firebase Scripts (v10+ Compat mode) -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+  <!-- Socket.io -->
+  <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 
-  <h2>1-on-1 Language Exchange</h2>
+  <h1>1-on-1 Language Exchange</h1>
 
-  <!-- Authentication UI Container -->
-  <div class="auth-box">
-    <div id="loggedOutUI">
-      <button id="loginBtn" onclick="handleGoogleLogin()">Sign in with Google</button>
-    </div>
-    <div id="loggedInUI" class="hidden">
-      <span id="userName">Welcome!</span>
-      <button id="logoutBtn" onclick="handleLogout()">Logout</button>
-    </div>
+  <!-- Logged Out UI -->
+  <div id="loggedOutUI">
+    <button id="loginBtn" type="button" onclick="handleGoogleLogin()">Sign in with Google</button>
   </div>
 
-  <div class="filter-box">
-    <label for="languageSelect">Language:</label>
+  <!-- Logged In UI (Initially Hidden) -->
+  <div id="loggedInUI" class="hidden">
+    <span id="userName"></span>
+    <button id="logoutBtn" type="button" onclick="handleLogout()">Logout</button>
+  </div>
+
+  <br>
+
+  <!-- Control Options -->
+  <div class="controls">
+    <label>Language:</label>
     <select id="languageSelect">
       <option value="English">English</option>
       <option value="Spanish">Spanish</option>
-      <option value="German">German</option>
+      <option value="Bengali">Bengali</option>
     </select>
 
-    <label for="countrySelect">Country:</label>
+    <label>Country:</label>
     <select id="countrySelect">
-      <option value="Any">Global (Any Country)</option>
-      <option value="Bangladesh">Bangladesh</option>
-      <option value="USA">USA</option>
+      <option value="Global">Global (Any Country)</option>
     </select>
 
     <button id="startBtn" disabled>Start</button>
     <button id="nextBtn" disabled>Next</button>
   </div>
 
-  <h3 id="status">Please sign in with Google to start</h3>
+  <p id="status">Please sign in with Google to start</p>
 
-  <div class="video-grid">
+  <!-- Video Grid -->
+  <div class="video-container">
     <div>
-      <h4>You</h4>
+      <h3>You</h3>
       <video id="localVideo" autoplay playsinline muted></video>
     </div>
     <div>
-      <h4>Partner</h4>
+      <h3>Partner</h3>
       <video id="remoteVideo" autoplay playsinline></video>
     </div>
   </div>
 
-  <!-- Socket.io & Custom Logic Script -->
-  <script src="/socket.io/socket.io.js"></script>
+  <!-- Main Script -->
   <script src="script.js"></script>
 </body>
 </html>
