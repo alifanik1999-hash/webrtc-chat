@@ -58,12 +58,12 @@ const rtcConfig = {
     { urls: 'stun:stun.l.google.com:19302' },
     {
       urls: "turn:a.relay.metered.ca:443?transport=tcp",
-      username: "e8838a688fb4042ea0f4eb78",
+      username: "de2fad12ff781e4aa7e9c308",
       credential: "7_ESuH77TI6_P905Po9vR0m536wKH21_i47pKc8JYYFbMvul"
     },
     {
       urls: "turn:a.relay.metered.ca:80",
-      username: "e8838a688fb4042ea0f4eb78",
+      username: "de2fad12ff781e4aa7e9c308",
       credential: "7_ESuH77TI6_P905Po9vR0m536wKH21_i47pKc8JYYFbMvul"
     }
   ]
