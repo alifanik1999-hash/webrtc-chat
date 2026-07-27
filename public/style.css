@@ -77,4 +77,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     padding: 8px;
     border-radius: 4px;
     border: 1px solid #444;
+}/* Logged-in / Logged-out UI toggle-এর জন্য */
+.hidden {
+  display: none !important;
 }
