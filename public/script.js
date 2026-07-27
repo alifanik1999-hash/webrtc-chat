@@ -54,7 +54,19 @@ let currentRoomId = null;
 let pendingCandidates = [];
 
 const rtcConfig = {
-  iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    {
+      urls: "turn:a.relay.metered.ca:443?transport=tcp",
+      username: "e8838a688fb4042ea0f4eb78",
+      credential: "1x1M21SgU/JvVbN+"
+    },
+    {
+      urls: "turn:a.relay.metered.ca:80",
+      username: "e8838a688fb4042ea0f4eb78",
+      credential: "1x1M21SgU/JvVbN+"
+    }
+  ]
 };
 
 // ১. ক্যামেরা ও মাইক পারমিশন সেটআপ
