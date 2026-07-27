@@ -38,6 +38,7 @@ auth.onAuthStateChanged((user) => {
     loggedInUI.classList.add('hidden');
   }
 });
+
 const socket = io();
 
 const localVideo = document.getElementById('localVideo');
@@ -82,8 +83,12 @@ async function setupMedia() {
 
 setupMedia();
 
-// ২. Start кнопка
+// ২. Start বাটন
 startBtn.addEventListener('click', () => {
+  if (!localStream) {
+    alert("Please allow camera and microphone access first!");
+    return;
+  }
   const language = languageSelect.value;
   const country = countrySelect.value;
 
@@ -93,7 +98,7 @@ startBtn.addEventListener('click', () => {
   statusText.innerText = 'Searching for a partner...';
 });
 
-// ৩. Next кнопка
+// ৩. Next বাটন
 nextBtn.addEventListener('click', () => {
   closePeerConnection();
   statusText.innerText = 'Finding next partner...';
@@ -112,9 +117,13 @@ socket.on('match-found', async ({ roomId, isInitiator }) => {
   createPeerConnection();
 
   if (isInitiator) {
-    const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(offer);
-    socket.emit('signal', { roomId: currentRoomId, signal: offer });
+    try {
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      socket.emit('signal', { roomId: currentRoomId, signal: offer });
+    } catch (err) {
+      console.error('Error creating offer:', err);
+    }
   }
 });
 
@@ -122,37 +131,47 @@ socket.on('match-found', async ({ roomId, isInitiator }) => {
 socket.on('signal', async ({ signal }) => {
   if (!peerConnection) createPeerConnection();
 
-  if (signal.type === 'offer') {
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
-    processPendingCandidates();
+  try {
+    if (signal.type === 'offer') {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
+      await processPendingCandidates();
 
-    const answer = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(answer);
-    socket.emit('signal', { roomId: currentRoomId, signal: answer });
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      socket.emit('signal', { roomId: currentRoomId, signal: answer });
 
-  } else if (signal.type === 'answer') {
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
-    processPendingCandidates();
+    } else if (signal.type === 'answer') {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
+      await processPendingCandidates();
 
-  } else if (signal.candidate) {
-    const candidate = new RTCIceCandidate(signal.candidate);
-    if (peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
-      await peerConnection.addIceCandidate(candidate);
-    } else {
-      pendingCandidates.push(candidate);
+    } else if (signal.candidate) {
+      const candidate = new RTCIceCandidate(signal.candidate);
+      if (peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
+        await peerConnection.addIceCandidate(candidate);
+      } else {
+        pendingCandidates.push(candidate);
+      }
     }
+  } catch (err) {
+    console.error('Signaling Error:', err);
   }
 });
 
-function processPendingCandidates() {
-  pendingCandidates.forEach(async (candidate) => {
-    await peerConnection.addIceCandidate(candidate);
-  });
+async function processPendingCandidates() {
+  for (const candidate of pendingCandidates) {
+    try {
+      await peerConnection.addIceCandidate(candidate);
+    } catch (err) {
+      console.error('Error adding pending candidate:', err);
+    }
+  }
   pendingCandidates = [];
 }
 
 // ৬. Peer Connection তৈরি
 function createPeerConnection() {
+  closePeerConnection(); // কোনো পুরোনো কানেকশন থাকলে আগেই ক্লিনআপ করে নেয়া
+
   peerConnection = new RTCPeerConnection(rtcConfig);
 
   if (localStream) {
@@ -162,7 +181,9 @@ function createPeerConnection() {
   }
 
   peerConnection.ontrack = (event) => {
-    remoteVideo.srcObject = event.streams[0];
+    if (event.streams && event.streams[0]) {
+      remoteVideo.srcObject = event.streams[0];
+    }
   };
 
   peerConnection.onicecandidate = (event) => {
@@ -175,16 +196,21 @@ function createPeerConnection() {
 // ৭. কানেকশন ক্লোজ করা
 function closePeerConnection() {
   if (peerConnection) {
+    peerConnection.ontrack = null;
+    peerConnection.onicecandidate = null;
     peerConnection.close();
     peerConnection = null;
   }
-  remoteVideo.srcObject = null;
+  if (remoteVideo) {
+    remoteVideo.srcObject = null;
+  }
   currentRoomId = null;
   pendingCandidates = [];
 }
 
 // ৮. Rematch
 socket.on('start-rematch', ({ language, country }) => {
+  closePeerConnection();
   socket.emit('find-match', { language, country });
 });
 
