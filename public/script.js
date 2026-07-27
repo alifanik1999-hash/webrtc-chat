@@ -14,28 +14,43 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const provider = new firebase.auth.GoogleAuthProvider();
 
-// 3. Login & Logout Functions
+// 3. Login & Logout Functions (Fixed with Redirect to avoid COOP errors)
 function handleGoogleLogin() {
-  auth.signInWithPopup(provider).catch((error) => console.error("Login Error:", error));
+  auth.signInWithRedirect(provider);
 }
 
 function handleLogout() {
   auth.signOut().catch((error) => console.error("Logout Error:", error));
 }
 
-// 4. Monitor Auth State Changes
+// 4. Handle Redirect Result (For Redirect Login Flow)
+auth.getRedirectResult().then((result) => {
+  if (result.user) {
+    console.log("Logged in successfully via redirect:", result.user);
+  }
+}).catch((error) => {
+  console.error("Redirect Login Error:", error);
+});
+
+// 5. Monitor Auth State Changes
 auth.onAuthStateChanged((user) => {
   const loggedOutUI = document.getElementById('loggedOutUI');
   const loggedInUI = document.getElementById('loggedInUI');
   const userName = document.getElementById('userName');
 
   if (user) {
-    loggedOutUI.classList.add('hidden');
-    loggedInUI.classList.remove('hidden');
-    userName.innerText = `Logged in as: ${user.displayName}`;
+    if (loggedOutUI) loggedOutUI.classList.add('hidden');
+    if (loggedInUI) loggedInUI.classList.remove('hidden');
+    if (userName) userName.innerText = `Logged in as: ${user.displayName}`;
+    
+    // ইউজার লগইন করলে Start বাটন এনাবল হবে
+    if (startBtn) startBtn.disabled = false;
   } else {
-    loggedOutUI.classList.remove('hidden');
-    loggedInUI.classList.add('hidden');
+    if (loggedOutUI) loggedOutUI.classList.remove('hidden');
+    if (loggedInUI) loggedInUI.classList.add('hidden');
+    
+    // লগআউট অবস্থায় Start বাটন ডিজেবল থাকবে
+    if (startBtn) startBtn.disabled = true;
   }
 });
 
@@ -77,42 +92,46 @@ async function setupMedia() {
     localVideo.srcObject = localStream;
   } catch (err) {
     console.error('Camera/Mic Error:', err);
-    statusText.innerText = 'Camera or Microphone permission denied!';
+    if (statusText) statusText.innerText = 'Camera or Microphone permission denied!';
   }
 }
 
 setupMedia();
 
 // ২. Start বাটন
-startBtn.addEventListener('click', () => {
-  if (!localStream) {
-    alert("Please allow camera and microphone access first!");
-    return;
-  }
-  const language = languageSelect.value;
-  const country = countrySelect.value;
+if (startBtn) {
+  startBtn.addEventListener('click', () => {
+    if (!localStream) {
+      alert("Please allow camera and microphone access first!");
+      return;
+    }
+    const language = languageSelect.value;
+    const country = countrySelect.value;
 
-  socket.emit('find-match', { language, country });
-  startBtn.disabled = true;
-  nextBtn.disabled = false;
-  statusText.innerText = 'Searching for a partner...';
-});
+    socket.emit('find-match', { language, country });
+    startBtn.disabled = true;
+    if (nextBtn) nextBtn.disabled = false;
+    if (statusText) statusText.innerText = 'Searching for a partner...';
+  });
+}
 
 // ৩. Next বাটন
-nextBtn.addEventListener('click', () => {
-  closePeerConnection();
-  statusText.innerText = 'Finding next partner...';
-  socket.emit('next-user');
-});
+if (nextBtn) {
+  nextBtn.addEventListener('click', () => {
+    closePeerConnection();
+    if (statusText) statusText.innerText = 'Finding next partner...';
+    socket.emit('next-user');
+  });
+}
 
 socket.on('waiting', (msg) => {
-  statusText.innerText = msg;
+  if (statusText) statusText.innerText = msg;
 });
 
 // ৪. Match Found
 socket.on('match-found', async ({ roomId, isInitiator }) => {
   currentRoomId = roomId;
-  statusText.innerText = 'Connected with a partner!';
+  if (statusText) statusText.innerText = 'Connected with a partner!';
   
   createPeerConnection();
 
@@ -170,7 +189,7 @@ async function processPendingCandidates() {
 
 // ৬. Peer Connection তৈরি
 function createPeerConnection() {
-  closePeerConnection(); // কোনো পুরোনো কানেকশন থাকলে আগেই ক্লিনআপ করে নেয়া
+  closePeerConnection(); // পুরোনো কানেকশন থাকলে ক্লিনআপ করা
 
   peerConnection = new RTCPeerConnection(rtcConfig);
 
@@ -217,5 +236,5 @@ socket.on('start-rematch', ({ language, country }) => {
 // ৯. Peer Disconnect
 socket.on('peer-disconnected', () => {
   closePeerConnection();
-  statusText.innerText = 'Partner left. Click Next to continue.';
+  if (statusText) statusText.innerText = 'Partner left. Click Next to continue.';
 });
