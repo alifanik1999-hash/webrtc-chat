@@ -12,9 +12,19 @@ const sendBtn = document.getElementById('sendBtn');
 
 let localStream;
 let peerConnection;
+let iceCandidatesQueue = []; // Candidate ধরে রাখার জন্য Queue
 
+// STUN ও TURN সার্ভার কনফিগারেশন
 const configuration = {
-    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        // আপনার মিটার্ড TURN সার্ভার Credentials এখানে বসাবেন
+        {
+            urls: "turn:a.relay.metered.ca:443?transport=tcp",
+            username: "YOUR_TURN_USERNAME", 
+            credential: "YOUR_TURN_PASSWORD"
+        }
+    ]
 };
 
 // ১. কল শুরু করা
@@ -34,7 +44,7 @@ startBtn.addEventListener('click', async () => {
     }
 });
 
-// ২. কল কেটে দেওয়া (Hang Up)
+// ২. কল কেটে দেওয়া (Hang Up)
 hangupBtn.addEventListener('click', () => {
     hangUp();
     socket.emit('hangup');
@@ -51,6 +61,7 @@ function hangUp() {
     }
     remoteVideo.srcObject = null;
     statusText.innerText = "Status: Disconnected";
+    iceCandidatesQueue = [];
     
     startBtn.disabled = false;
     hangupBtn.disabled = true;
@@ -60,22 +71,32 @@ function hangUp() {
 
 // Peer Connection তৈরি
 function createPeerConnection() {
+    if (peerConnection) return;
+
     peerConnection = new RTCPeerConnection(configuration);
 
-    localStream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, localStream);
-    });
+    // স্থানীয় স্ট্রিম যোগ করা
+    if (localStream) {
+        localStream.getTracks().forEach(track => {
+            peerConnection.addTrack(track, localStream);
+        });
+    }
 
+    // পার্টনারের ভিডিও ট্র্যাক পাওয়ার পর
     peerConnection.ontrack = (event) => {
-        remoteVideo.srcObject = event.streams[0];
+        if (event.streams && event.streams[0]) {
+            remoteVideo.srcObject = event.streams[0];
+        }
     };
 
+    // লোকাল ICE Candidate তৈরি হলে পাঠাবে
     peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
             socket.emit('candidate', event.candidate);
         }
     };
 
+    // অটোমেটিক অফার তৈরির জন্য
     peerConnection.onnegotiationneeded = async () => {
         try {
             const offer = await peerConnection.createOffer();
@@ -88,27 +109,72 @@ function createPeerConnection() {
 }
 
 // সকেট ইভেন্ট হ্যান্ডলিং
+
+// Offer রিসিভ করা
 socket.on('offer', async (offer) => {
-    if (!peerConnection) createPeerConnection();
+    try {
+        // ক্যামেরা চালু না থাকলে আগে ক্যামেরা চালু নিশ্চিত করা
+        if (!localStream) {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            localVideo.srcObject = localStream;
+            startBtn.disabled = true;
+            hangupBtn.disabled = false;
+        }
 
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-    const answer = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(answer);
-    
-    socket.emit('answer', answer);
-    enableChat();
-});
+        createPeerConnection();
 
-socket.on('answer', async (answer) => {
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-    enableChat();
-});
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+        
+        // পেন্ডিং থাকা ক্যান্ডিডেটগুলো প্রসেস করা
+        await processQueuedCandidates();
 
-socket.on('candidate', async (candidate) => {
-    if (peerConnection) {
-        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        
+        socket.emit('answer', answer);
+        enableChat();
+    } catch (err) {
+        console.error("Error handling offer:", err);
     }
 });
+
+// Answer রিসিভ করা
+socket.on('answer', async (answer) => {
+    try {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        // পেন্ডিং থাকা ক্যান্ডিডেটগুলো প্রসেস করা
+        await processQueuedCandidates();
+        enableChat();
+    } catch (err) {
+        console.error("Error handling answer:", err);
+    }
+});
+
+// Candidate রিসিভ করা (Queue সহ)
+socket.on('candidate', async (candidate) => {
+    try {
+        if (peerConnection && peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        } else {
+            // RemoteDescription সেট হওয়ার আগ পর্যন্ত ক্যান্ডিডেট জমিয়ে রাখা
+            iceCandidatesQueue.push(candidate);
+        }
+    } catch (e) {
+        console.error('Error adding ice candidate:', e);
+    }
+});
+
+// জমিয়ে রাখা Candidates যুক্ত করার ফাংশন
+async function processQueuedCandidates() {
+    while (iceCandidatesQueue.length > 0) {
+        const candidate = iceCandidatesQueue.shift();
+        try {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+            console.error('Error adding queued candidate:', e);
+        }
+    }
+}
 
 socket.on('hangup', () => {
     hangUp();
