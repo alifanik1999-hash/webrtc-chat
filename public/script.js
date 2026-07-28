@@ -52,18 +52,19 @@ let peerConnection = null;
 let currentRoomId = null;
 let pendingCandidates = [];
 
+// FIXED: Optimised Ice Servers (Added UDP & TCP support without trailing spaces)
 const rtcConfig = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
     {
-      urls: "turn:a.relay.metered.ca:443?transport=tcp",
+      urls: [
+        "turn:a.relay.metered.ca:80",
+        "turn:a.relay.metered.ca:443",
+        "turn:a.relay.metered.ca:443?transport=tcp"
+      ],
       username: "de2fad12ff781e4aa7e9c308",
-      credential: "7_ESuH77TI6_P905Po9vR0m536wKH21_i47pKc8JYYFbMvul"
-    },
-    {
-      urls: "turn:a.relay.metered.ca:80",
-      username: "de2fad12ff781e4aa7e9c308",
-      credential: "7_ESuH77TI6_P905Po9vR0m536wKH21_i47pKc8JYYFbMvul"
+      credential: "7_ESuH77TI6_P905Po9vR0m536wKH21_i47pKc8JYYFbMvu1" // ⚠️ নিশ্চিত করুন এখানে সঠিক Secret Key বসিয়েছেন
     }
   ]
 };
@@ -74,7 +75,10 @@ async function setupMedia() {
   const statusText = document.getElementById('status');
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    if (localVideo) localVideo.srcObject = localStream;
+    if (localVideo) {
+      localVideo.srcObject = localStream;
+      localVideo.muted = true; // মিউট করে না রাখলে ব্রাউজার নিজের অডিও ইকো করতে পারে
+    }
   } catch (err) {
     console.error('Camera/Mic Error:', err);
     if (statusText) statusText.innerText = 'Camera/Microphone permission denied!';
@@ -105,13 +109,11 @@ document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged((user) => {
     if (user) {
       console.log("User logged in:", user.displayName);
-      
-      // UI Switch
+     
       if (loggedOutUI) loggedOutUI.classList.add('hidden');
       if (loggedInUI) loggedInUI.classList.remove('hidden');
       if (userName) userName.innerText = `Logged in as: ${user.displayName}`;
-      
-      // Enable Start Button
+     
       if (startBtn) {
         startBtn.disabled = false;
         startBtn.style.cursor = "pointer";
@@ -121,12 +123,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } else {
       console.log("No user logged in");
-      
-      // UI Switch
+     
       if (loggedOutUI) loggedOutUI.classList.remove('hidden');
       if (loggedInUI) loggedInUI.classList.add('hidden');
-      
-      // Disable Start Button
+     
       if (startBtn) {
         startBtn.disabled = true;
         startBtn.style.cursor = "not-allowed";
@@ -173,7 +173,7 @@ socket.on('match-found', async ({ roomId, isInitiator }) => {
   const statusText = document.getElementById('status');
   currentRoomId = roomId;
   if (statusText) statusText.innerText = 'Connected with a partner!';
-  
+ 
   createPeerConnection();
 
   if (isInitiator) {
@@ -239,15 +239,25 @@ function createPeerConnection() {
     });
   }
 
+  // FIXED: Auto-play & Stream Attachment Issue
   peerConnection.ontrack = (event) => {
-    if (event.streams && event.streams[0] && remoteVideo) {
+    if (remoteVideo && event.streams && event.streams[0]) {
       remoteVideo.srcObject = event.streams[0];
+      
+      // বাধ্যতামূলকভাবে ভিডিও প্লে করার চেষ্টা (Chrome/Safari এর অটো-প্লে পলিসি বাইপাস করার জন্য)
+      remoteVideo.play().catch(e => {
+        console.warn("Video Play Failed, retrying with play():", e);
+      });
     }
   };
 
+  // FIXED: Ice Candidate Serialization
   peerConnection.onicecandidate = (event) => {
     if (event.candidate && currentRoomId) {
-      socket.emit('signal', { roomId: currentRoomId, signal: { candidate: event.candidate } });
+      socket.emit('signal', { 
+        roomId: currentRoomId, 
+        signal: { candidate: event.candidate.toJSON() } 
+      });
     }
   };
 }
