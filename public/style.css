@@ -101,7 +101,7 @@ button {
 }
 
 /* ==========================================
-   MAIN CONTENT & GRID LAYOUT
+   MAIN CONTENT & PERFECT TWO-COLUMN LAYOUT
    ========================================== */
 .main-content {
   display: flex;
@@ -113,6 +113,7 @@ button {
   width: 100%;
   height: calc(100vh - 120px);
   box-sizing: border-box;
+  align-items: stretch; /* দুটি কলামকেই সমান লম্বা করবে */
 }
 
 /* Base Video Card */
@@ -124,7 +125,7 @@ button {
   border: 1px solid #334155;
 }
 
-/* Left Column: Local Video (Full Height) */
+/* Left Column: Local Video */
 .local-card {
   flex: 1;
   height: 100%;
@@ -132,20 +133,22 @@ button {
   flex-direction: column;
 }
 
-/* Right Column: GRID System (Guarantees Full Stretch) */
+/* Right Column: Stretch Container */
 .right-column {
   flex: 1;
-  display: grid;
-  grid-template-rows: 1fr auto; /* প্রথমটা যতটুকু খালি পাবে টেনে নিবে, ২য়টা (বাটন) যতটুকু দরকার নিবে */
+  display: flex;
+  flex-direction: column;
   height: 100%;
   gap: 16px;
+  justify-content: flex-start;
 }
 
-/* Partner Card Fill Entire Top Grid Frame */
+/* Partner Screen (Stretches to fill all free space above controls) */
 .partner-card {
+  flex: 1 1 0; /* অবশিষ্ট পুরো জায়গা দখল করবে */
   width: 100%;
-  height: 100%;
-  min-height: 0; /* Important for CSS Grid stretch */
+  min-height: 0; /* Flex-grow overflow fix */
+  display: flex;
 }
 
 .video-label {
@@ -189,7 +192,7 @@ button {
   color: #38bdf8;
 }
 
-/* Video Frame Fill */
+/* Video Elements */
 video {
   width: 100%;
   height: 100%;
@@ -239,9 +242,11 @@ video {
 }
 
 /* ==========================================
-   OmeTV CONTROLS (Bottom Grid Row)
+   OmeTV CONTROLS (Pinned to Absolute Bottom)
    ========================================== */
 .partner-controls {
+  flex: 0 0 auto; /* নির্দিষ্ট উচ্চতা বজায় রাখবে */
+  margin-top: auto; /* কন্ট্রোল বারকে টেনে একদম নিচে নামিয়ে দেবে */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -321,15 +326,13 @@ button:disabled {
 
 .hidden { display: none !important; }
 
-/* Responsive */
+/* Responsive Mobile Layout */
 @media (max-width: 900px) {
   .main-content {
     flex-direction: column;
     height: auto;
   }
   .right-column {
-    display: flex;
-    flex-direction: column;
     height: auto;
   }
   .partner-card {
