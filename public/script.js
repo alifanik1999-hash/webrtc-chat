@@ -30,6 +30,8 @@ const statusText = document.getElementById('status');
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
 const countrySelect = document.getElementById('countrySelect');
+const cameraNameDisplay = document.getElementById('cameraName');
+const micNameDisplay = document.getElementById('micName');
 
 // ==========================================
 // ৩. RELIABLE AUTH LOGIC
@@ -125,9 +127,23 @@ async function startLocalMedia() {
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       if (localVideo) localVideo.srcObject = localStream;
+
+      // সক্রিয় ক্যামেরা ও মাইক্রোফোনের নাম স্ক্রিনে দেখানো
+      const videoTrack = localStream.getVideoTracks()[0];
+      const audioTrack = localStream.getAudioTracks()[0];
+
+      if (cameraNameDisplay && videoTrack) {
+        cameraNameDisplay.innerText = videoTrack.label || "Active Camera";
+      }
+      if (micNameDisplay && audioTrack) {
+        micNameDisplay.innerText = audioTrack.label || "Active Microphone";
+      }
+
     } catch (err) {
       console.error('Camera/Mic permission error:', err);
       if (statusText) statusText.innerText = "Camera/Microphone permission required!";
+      if (cameraNameDisplay) cameraNameDisplay.innerText = "Permission Denied";
+      if (micNameDisplay) micNameDisplay.innerText = "Permission Denied";
     }
   }
 }
@@ -157,15 +173,12 @@ if (nextBtn) {
   });
 }
 
-// 🛑 Stop Video Chat Functionality
+// Stop Video Chat
 if (stopBtn) {
   stopBtn.addEventListener('click', () => {
     if (remoteVideo) remoteVideo.srcObject = null;
     closePeerConnection();
-    
-    // Server-এ জানান দেওয়া যে কনেকশন লিভ করা হয়েছে
     socket.emit('next-user'); 
-    
     if (statusText) statusText.innerText = "Stopped. Click Start to search again.";
     
     startBtn.disabled = false;
@@ -298,6 +311,10 @@ window.toggleAudio = function() {
     audioTrack.enabled = !audioTrack.enabled;
     const btn = document.getElementById('muteAudioBtn');
     if (btn) btn.innerText = audioTrack.enabled ? '🎤 Mute' : '🎙️ Unmute';
+    if (micNameDisplay) {
+      micNameDisplay.style.color = audioTrack.enabled ? '#00d2d3' : '#ff4757';
+      micNameDisplay.innerText = audioTrack.enabled ? (audioTrack.label || 'Active') : 'Muted';
+    }
   }
 };
 
@@ -308,6 +325,10 @@ window.toggleVideo = function() {
     videoTrack.enabled = !videoTrack.enabled;
     const btn = document.getElementById('toggleVideoBtn');
     if (btn) btn.innerText = videoTrack.enabled ? '📹 Video Off' : '📷 Video On';
+    if (cameraNameDisplay) {
+      cameraNameDisplay.style.color = videoTrack.enabled ? '#00d2d3' : '#ff4757';
+      cameraNameDisplay.innerText = videoTrack.enabled ? (videoTrack.label || 'Active') : 'Disabled';
+    }
   }
 };
 
