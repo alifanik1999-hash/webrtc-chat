@@ -2,12 +2,13 @@
 // ১. FIREBASE CONFIGURATION & INITIALIZATION
 // ==========================================
 const firebaseConfig = {
-  apiKey: "AIzaSyC2mJpT-fX6p5O6_d0E2x7L-7W8P0Y1Z2", // আপনার আসল Firebase API Key দিয়ে রিপ্লেস করুন (যদি আলাদা থাকে)
-  authDomain: "talkwithworld.firebaseapp.com",
-  projectId: "talkwithworld",
-  storageBucket: "talkwithworld.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:abcdef1234567890"
+  apiKey: "AIzaSyCzFtRb0VPOuSalqoGe4Hn9AH9fKfpAhSg",
+  authDomain: "my-video-chat-dde4c.firebaseapp.com",
+  projectId: "my-video-chat-dde4c",
+  storageBucket: "my-video-chat-dde4c.firebasestorage.app",
+  messagingSenderId: "685304112979",
+  appId: "1:685304112979:web:d0b094d9666b4413b0e3a6",
+  measurementId: "G-2Z4X8B7HHY"
 };
 
 // Initialize Firebase App & Auth
