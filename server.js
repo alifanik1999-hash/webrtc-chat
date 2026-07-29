@@ -22,7 +22,7 @@ io.on('connection', (socket) => {
     const selectedCountry = country || 'Any';
     const queueKey = `${selectedLang}_${selectedCountry}`;
 
-    // আগের কোনো রুমে থাকলে তা থেকে বের করে দেওয়া
+    // আগের কোনো রুমে থাকলে বের করে দেওয়া
     leaveCurrentRoom(socket);
 
     if (!queues[queueKey]) {
@@ -40,7 +40,6 @@ io.on('connection', (socket) => {
       roomId: null
     };
 
-    // ম্যাচ খোঁজার চেষ্টা
     tryMatchUser(queueKey);
   });
 
@@ -52,12 +51,11 @@ io.on('connection', (socket) => {
       const socket1 = io.sockets.sockets.get(user1);
       const socket2 = io.sockets.sockets.get(user2);
 
-      // FIXED: যদি ইউজার১ ডিসকানেক্টড থাকে, তবে ইউজার২-কে আবার কিউতে ফেরত পাঠানো
+      // কোনো একজন ডিসকানেক্ট থাকলে অপরজনকে কিউতে ফেরত পাঠানো
       if (!socket1 && socket2) {
         queues[queueKey].unshift(user2);
         return;
       }
-      // FIXED: যদি ইউজার২ ডিসকানেক্টড থাকে, তবে ইউজার১-কে আবার কিউতে ফেরত পাঠানো
       if (socket1 && !socket2) {
         queues[queueKey].unshift(user1);
         return;

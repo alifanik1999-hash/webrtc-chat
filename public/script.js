@@ -1,180 +1,80 @@
-// 1. Firebase Config
-const firebaseConfig = {
-  apiKey: "AIzaSyCzFtRb0VPOuSalqoGe4Hn9AH9fKfpAhSg",
-  authDomain: "my-video-chat-dde4c.firebaseapp.com",
-  projectId: "my-video-chat-dde4c",
-  storageBucket: "my-video-chat-dde4c.firebasestorage.app",
-  messagingSenderId: "685304112979",
-  appId: "1:685304112979:web:d0b094d9666b4413b0e3a6",
-  measurementId: "G-2Z4X8B7HHY"
-};
-
-// 2. Initialize Firebase
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-const auth = firebase.auth();
-const provider = new firebase.auth.GoogleAuthProvider();
-
-// Global Auth Handlers
-window.handleGoogleLogin = async function() {
-  console.log("Attempting Login...");
-  try {
-    await auth.signInWithPopup(provider);
-  } catch (error) {
-    console.warn("Popup failed/blocked, falling back to Redirect:", error);
-    try {
-      await auth.signInWithRedirect(provider);
-    } catch (redirectErr) {
-      console.error("Login completely failed:", redirectErr);
-      alert("Login failed: " + redirectErr.message);
-    }
-  }
-};
-
-window.handleLogout = function() {
-  auth.signOut()
-    .then(() => console.log("User signed out successfully"))
-    .catch((error) => console.error("Logout Error:", error));
-};
-
-// Catch Redirect Login Result
-auth.getRedirectResult().catch((error) => {
-  if (error && error.code) {
-    console.error("Redirect Result Error:", error);
-  }
-});
-
-// WebRTC & Socket.io Global Variables
 const socket = io();
+
+// DOM Elements
+const localVideo = document.getElementById('localVideo');
+const remoteVideo = document.getElementById('remoteVideo');
+const startBtn = document.getElementById('startBtn');
+const nextBtn = document.getElementById('nextBtn');
+const statusText = document.getElementById('status');
+const languageSelect = document.getElementById('languageSelect');
+const countrySelect = document.getElementById('countrySelect');
+
 let localStream = null;
 let peerConnection = null;
 let currentRoomId = null;
 let pendingCandidates = [];
 
-// Optimised Ice Servers
+// STUN Server Configuration
 const rtcConfig = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    {
-      urls: [
-        "turn:a.relay.metered.ca:80",
-        "turn:a.relay.metered.ca:443",
-        "turn:a.relay.metered.ca:443?transport=tcp"
-      ],
-      username: "de2fad12ff781e4aa7e9c308",
-      credential: "7_ESuH77TI6_P905Po9vR0m536wKH21_i47pKc8JYYFbMvu1"
-    }
+    { urls: 'stun:stun1.l.google.com:19302' }
   ]
 };
 
-// Camera Setup
-async function setupMedia() {
-  const localVideo = document.getElementById('localVideo');
-  const statusText = document.getElementById('status');
-  try {
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    if (localVideo) {
-      localVideo.srcObject = localStream;
-      localVideo.muted = true; // নিজের অডিও মিউট করা
+// ১. ক্যামেরা ও মাইক্রোফোন পারমিশন নেওয়া
+async function startLocalMedia() {
+  if (!localStream) {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      if (localVideo) localVideo.srcObject = localStream;
+    } catch (err) {
+      console.error('Camera/Mic access error:', err);
+      if (statusText) statusText.innerText = "Camera/Microphone permission required!";
     }
-  } catch (err) {
-    console.error('Camera/Mic Error:', err);
-    if (statusText) statusText.innerText = 'Camera/Microphone permission denied!';
   }
 }
 
-// Execute DOM Dependent Logic after page renders fully
-document.addEventListener('DOMContentLoaded', () => {
-  setupMedia();
+// পেজ লোড হলেই লোকাল স্ট্রিম শুরু
+startLocalMedia();
 
-  // DOM Elements
-  const startBtn = document.getElementById('startBtn');
-  const nextBtn = document.getElementById('nextBtn');
-  const statusText = document.getElementById('status');
-  const languageSelect = document.getElementById('languageSelect');
-  const countrySelect = document.getElementById('countrySelect');
-  const loggedOutUI = document.getElementById('loggedOutUI');
-  const loggedInUI = document.getElementById('loggedInUI');
-  const userName = document.getElementById('userName');
-  const loginBtn = document.getElementById('loginBtn');
-  const logoutBtn = document.getElementById('logoutBtn');
+// ২. Start এবং Next বাটন হ্যান্ডলার
+if (startBtn) {
+  startBtn.addEventListener('click', () => {
+    const language = languageSelect ? languageSelect.value : 'English';
+    const country = countrySelect ? countrySelect.value : 'Global';
 
-  // Event Listeners for Login/Logout buttons
-  if (loginBtn) loginBtn.onclick = window.handleGoogleLogin;
-  if (logoutBtn) logoutBtn.onclick = window.handleLogout;
-
-  // Monitor Auth State Changes
-  auth.onAuthStateChanged((user) => {
-    if (user) {
-      console.log("User logged in:", user.displayName);
-      
-      if (loggedOutUI) loggedOutUI.classList.add('hidden');
-      if (loggedInUI) loggedInUI.classList.remove('hidden');
-      if (userName) userName.innerText = `Logged in as: ${user.displayName}`;
-      
-      if (startBtn) {
-        startBtn.disabled = false;
-        startBtn.style.cursor = "pointer";
-        startBtn.style.opacity = "1";
-      }
-      if (statusText) statusText.innerText = 'Click Start to find a partner';
-
-    } else {
-      console.log("No user logged in");
-      
-      if (loggedOutUI) loggedOutUI.classList.remove('hidden');
-      if (loggedInUI) loggedInUI.classList.add('hidden');
-      
-      if (startBtn) {
-        startBtn.disabled = true;
-        startBtn.style.cursor = "not-allowed";
-        startBtn.style.opacity = "0.5";
-      }
-      if (statusText) statusText.innerText = 'Please sign in with Google to start';
-    }
+    if (statusText) statusText.innerText = "Searching for a partner...";
+    socket.emit('find-match', { language, country });
+    startBtn.disabled = true;
+    if (nextBtn) nextBtn.disabled = false;
   });
+}
 
-  // Start Button Handler
-  if (startBtn) {
-    startBtn.addEventListener('click', () => {
-      if (!localStream) {
-        alert("Please allow camera and microphone access first!");
-        return;
-      }
-      const language = languageSelect ? languageSelect.value : 'English';
-      const country = countrySelect ? countrySelect.value : 'Any';
+if (nextBtn) {
+  nextBtn.addEventListener('click', () => {
+    if (remoteVideo) remoteVideo.srcObject = null;
+    closePeerConnection();
+    if (statusText) statusText.innerText = "Searching for new partner...";
+    socket.emit('next-user');
+  });
+}
 
-      socket.emit('find-match', { language, country });
-      startBtn.disabled = true;
-      if (nextBtn) nextBtn.disabled = false;
-      if (statusText) statusText.innerText = 'Searching for a partner...';
-    });
-  }
-
-  // Next Button Handler
-  if (nextBtn) {
-    nextBtn.addEventListener('click', () => {
-      closePeerConnection();
-      if (statusText) statusText.innerText = 'Finding next partner...';
-      socket.emit('next-user');
-    });
-  }
+socket.on('start-rematch', ({ language, country }) => {
+  socket.emit('find-match', { language, country });
 });
 
-// Socket Events
 socket.on('waiting', (msg) => {
-  const statusText = document.getElementById('status');
   if (statusText) statusText.innerText = msg;
 });
 
+// ৩. Match Found হলে WebRTC Connection তৈরি
 socket.on('match-found', async ({ roomId, isInitiator }) => {
-  const statusText = document.getElementById('status');
+  console.log(`Matched! Room ID: ${roomId}, Initiator: ${isInitiator}`);
+  if (statusText) statusText.innerText = "Connected with a partner!";
   currentRoomId = roomId;
-  if (statusText) statusText.innerText = 'Connected with a partner!';
- 
-  createPeerConnection();
+
+  await createPeerConnection();
 
   if (isInitiator) {
     try {
@@ -182,13 +82,56 @@ socket.on('match-found', async ({ roomId, isInitiator }) => {
       await peerConnection.setLocalDescription(offer);
       socket.emit('signal', { roomId: currentRoomId, signal: offer });
     } catch (err) {
-      console.error('Error creating offer:', err);
+      console.error("Error creating offer:", err);
     }
   }
 });
 
+// ৪. Peer Connection ও Track ম্যানেজমেন্ট
+async function createPeerConnection() {
+  closePeerConnection();
+
+  peerConnection = new RTCPeerConnection(rtcConfig);
+  pendingCandidates = [];
+
+  // Local Tracks যোগ করা
+  if (localStream) {
+    localStream.getTracks().forEach(track => {
+      peerConnection.addTrack(track, localStream);
+    });
+  }
+
+  // ICE Candidate ট্রান্সফার
+  peerConnection.onicecandidate = (event) => {
+    if (event.candidate && currentRoomId) {
+      socket.emit('signal', {
+        roomId: currentRoomId,
+        signal: { candidate: event.candidate }
+      });
+    }
+  };
+
+  // Remote Stream গ্রহণ করা
+  peerConnection.ontrack = (event) => {
+    console.log("Remote track received:", event.streams);
+    if (remoteVideo) {
+      if (event.streams && event.streams[0]) {
+        remoteVideo.srcObject = event.streams[0];
+      } else {
+        const stream = new MediaStream();
+        stream.addTrack(event.track);
+        remoteVideo.srcObject = stream;
+      }
+
+      // Autoplay নিশ্চিতকরণ
+      remoteVideo.play().catch(e => console.log("Video Play Error:", e));
+    }
+  };
+}
+
+// ৫. Signaling Data হ্যান্ডলিং
 socket.on('signal', async ({ signal }) => {
-  if (!peerConnection) createPeerConnection();
+  if (!peerConnection) return;
 
   try {
     if (signal.type === 'offer') {
@@ -212,89 +155,31 @@ socket.on('signal', async ({ signal }) => {
       }
     }
   } catch (err) {
-    console.error('Signaling Error:', err);
+    console.error("Signal Processing Error:", err);
   }
 });
 
 async function processPendingCandidates() {
-  for (const candidate of pendingCandidates) {
-    try {
-      await peerConnection.addIceCandidate(candidate);
-    } catch (err) {
-      console.error('Error adding pending candidate:', err);
-    }
+  while (pendingCandidates.length > 0) {
+    const candidate = pendingCandidates.shift();
+    await peerConnection.addIceCandidate(candidate);
   }
-  pendingCandidates = [];
 }
 
-// FIXED: Enhanced Peer Connection Setup
-function createPeerConnection() {
-  const remoteVideo = document.getElementById('remoteVideo');
+// ৬. Peer Disconnect Cleanup
+socket.on('peer-disconnected', () => {
+  console.log('Partner disconnected');
+  if (statusText) statusText.innerText = "Partner disconnected. Click Next or Start to search again.";
+  if (remoteVideo) remoteVideo.srcObject = null;
   closePeerConnection();
+  if (startBtn) startBtn.disabled = false;
+});
 
-  peerConnection = new RTCPeerConnection(rtcConfig);
-
-  // Local tracks যুক্ত করা
-  if (localStream) {
-    localStream.getTracks().forEach(track => {
-      peerConnection.addTrack(track, localStream);
-    });
-  }
-
-  // FIXED: Remote Video and Audio Stream Attachment
-  peerConnection.ontrack = (event) => {
-    if (remoteVideo) {
-      if (event.streams && event.streams[0]) {
-        remoteVideo.srcObject = event.streams[0];
-      } else {
-        if (!remoteVideo.srcObject) {
-          remoteVideo.srcObject = new MediaStream();
-        }
-        remoteVideo.srcObject.addTrack(event.track);
-      }
-
-      // অটো-প্লে ব্লক বাইপাস করার ট্রাই
-      remoteVideo.play().catch(e => {
-        console.warn("Autoplay blocked/failed, attempting play again:", e);
-      });
-    }
-  };
-
-  // ICE Candidates আদান-প্রদান
-  peerConnection.onicecandidate = (event) => {
-    if (event.candidate && currentRoomId) {
-      socket.emit('signal', { 
-        roomId: currentRoomId, 
-        signal: { candidate: event.candidate.toJSON() } 
-      });
-    }
-  };
-}
-
-// FIXED: Clean Connection Closure
 function closePeerConnection() {
-  const remoteVideo = document.getElementById('remoteVideo');
   if (peerConnection) {
     peerConnection.ontrack = null;
     peerConnection.onicecandidate = null;
     peerConnection.close();
     peerConnection = null;
   }
-  if (remoteVideo) {
-    remoteVideo.pause();
-    remoteVideo.srcObject = null;
-  }
-  currentRoomId = null;
-  pendingCandidates = [];
 }
-
-socket.on('start-rematch', ({ language, country }) => {
-  closePeerConnection();
-  socket.emit('find-match', { language, country });
-});
-
-socket.on('peer-disconnected', () => {
-  const statusText = document.getElementById('status');
-  closePeerConnection();
-  if (statusText) statusText.innerText = 'Partner left. Click Next to continue.';
-});
