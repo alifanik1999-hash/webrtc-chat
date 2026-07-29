@@ -1,193 +1,267 @@
 /* ==========================================
-   GLOBAL STYLES & RESET
+   GLOBAL RESET & LAYOUT
    ========================================== */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 body {
-  background-color: #0f172a;
+  background-color: #0b0f19;
   color: #f8fafc;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  min-height: 100vh;
-  padding: 20px;
 }
 
 /* ==========================================
-   HEADER & USER BAR
+   TOP BAR & AUTHENTICATION (Top Right)
    ========================================== */
-h1 {
-  font-size: 1.8rem;
-  font-weight: 700;
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  background-color: #111827;
+  border-bottom: 1px solid #1f2937;
+}
+
+.logo {
+  font-size: 1.4rem;
+  font-weight: 800;
   color: #38bdf8;
-  margin-bottom: 15px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+}
+
+.auth-container {
+  display: flex;
+  align-items: center;
 }
 
 #loggedOutUI, #loggedInUI {
-  margin-bottom: 15px;
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
 #userName {
-  font-weight: 600;
-  color: #e2e8f0;
+  font-size: 14px;
+  color: #cbd5e1;
+  font-weight: 500;
 }
 
 button {
   cursor: pointer;
   border: none;
   border-radius: 8px;
-  padding: 10px 18px;
-  font-size: 14px;
   font-weight: 600;
-  transition: all 0.2s ease-in-out;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
+  transition: all 0.2s ease;
 }
 
-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  filter: brightness(1.1);
+#loginBtn {
+  background-color: #3b82f6;
+  color: white;
+  padding: 8px 16px;
 }
 
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-#loginBtn { background-color: #4f46e5; color: #fff; }
-#logoutBtn { background-color: #334155; color: #cbd5e1; }
-
-/* ==========================================
-   DEVICE STATUS BAR
-   ========================================== */
-#deviceInfo {
-  background: #1e293b !important;
-  border: 1px solid #334155;
-  color: #94a3b8 !important;
-  padding: 8px 16px !important;
-  border-radius: 20px !important;
-  font-size: 13px !important;
-  margin-bottom: 20px !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+#logoutBtn {
+  background-color: #374151;
+  color: #f3f4f6;
+  padding: 6px 12px;
+  font-size: 13px;
 }
 
 /* ==========================================
-   CONTROLS PANEL
+   INFO & STATUS BAR
    ========================================== */
-.controls {
-  background-color: #1e293b;
-  padding: 12px 20px;
-  border-radius: 12px;
+.info-bar {
   display: flex;
-  flex-wrap: wrap;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  border: 1px solid #334155;
-  margin-bottom: 15px;
-  max-width: 900px;
-  width: 100%;
-}
-
-.controls label {
-  font-weight: 600;
-  color: #94a3b8;
-  font-size: 14px;
-}
-
-select {
+  padding: 8px 24px;
   background-color: #0f172a;
-  color: #f8fafc;
-  border: 1px solid #475569;
-  padding: 8px 12px;
-  border-radius: 6px;
-  outline: none;
-  font-size: 14px;
-  cursor: pointer;
+  font-size: 13px;
 }
 
-select:focus {
-  border-color: #38bdf8;
+#deviceInfo {
+  color: #94a3b8;
 }
 
-#startBtn { background-color: #10b981; color: white; }
-#nextBtn { background-color: #0284c7; color: white; }
-#stopBtn { background-color: #ef4444 !important; color: white; }
-#muteAudioBtn, #toggleVideoBtn { background-color: #475569; color: white; }
-#reportBtn { background-color: #dc2626 !important; color: white; }
-
-/* ==========================================
-   STATUS MESSAGE
-   ========================================== */
-#status {
-  font-size: 15px;
-  font-weight: 500;
+#cameraName, #micName {
   color: #38bdf8;
-  margin-bottom: 20px;
-  min-height: 22px;
+}
+
+#status {
+  font-weight: 600;
+  color: #10b981;
 }
 
 /* ==========================================
-   VIDEO CONTAINER & CARDS
+   MAIN CONTENT & VIDEO CARDS
    ========================================== */
-.video-container {
+.main-content {
   display: flex;
-  gap: 20px;
-  justify-content: center;
-  align-items: center;
+  flex: 1;
+  padding: 16px;
+  gap: 16px;
+  max-width: 1400px;
+  margin: 0 auto;
   width: 100%;
-  max-width: 1000px;
-  flex-wrap: wrap;
 }
 
-.video-container > div {
-  flex: 1;
-  min-width: 320px;
+.video-card {
+  position: relative;
   background-color: #1e293b;
-  border-radius: 16px;
-  padding: 12px;
+  border-radius: 12px;
+  overflow: hidden;
   border: 1px solid #334155;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
 }
 
-.video-container h3 {
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #94a3b8;
-  margin-bottom: 8px;
-  width: 100%;
-  text-align: left;
-  padding-left: 5px;
+/* Partner Screen (Left / Main side) */
+.partner-card {
+  flex: 2;
+  min-height: 480px;
+}
+
+/* Local Screen (Right side) */
+.local-card {
+  flex: 1;
+  min-height: 480px;
+}
+
+.video-label {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 10;
 }
 
 video {
   width: 100%;
-  height: 260px;
-  background-color: #020617;
-  border-radius: 10px;
+  height: 100%;
   object-fit: cover;
+  background-color: #020617;
 }
 
-/* Local Video mirror effect */
 #localVideo {
-  transform: scaleX(-1);
+  transform: scaleX(-1); /* Mirror camera */
+}
+
+/* ==========================================
+   HOVER CONTROLS (Inside Local Screen)
+   ========================================== */
+.overlay-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  opacity: 0; /* Hidden by default */
+  transition: opacity 0.3s ease;
+  z-index: 15;
+}
+
+/* Hovering over local video reveals options */
+.local-card:hover .overlay-controls {
+  opacity: 1;
+}
+
+.overlay-controls button {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(5px);
+  color: #fff;
+  padding: 10px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.overlay-controls button:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* ==========================================
+   OmeTV STYLE CONTROLS (Under Partner Screen)
+   ========================================== */
+.partner-controls {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 15;
+}
+
+.country-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #cbd5e1;
+}
+
+select {
+  background-color: #1e293b;
+  color: #fff;
+  border: 1px solid #475569;
+  padding: 8px;
+  border-radius: 6px;
+  outline: none;
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Big Action Buttons */
+.big-btn {
+  padding: 12px 22px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  border-radius: 8px;
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+.start-btn { background-color: #10b981; }
+.start-btn:hover:not(:disabled) { background-color: #059669; }
+
+.stop-btn { background-color: #ef4444; }
+.stop-btn:hover:not(:disabled) { background-color: #dc2626; }
+
+.next-btn { background-color: #3b82f6; }
+.next-btn:hover:not(:disabled) { background-color: #2563eb; }
+
+.icon-btn {
+  padding: 12px;
+  font-size: 16px;
+  background-color: #374151;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .hidden {
@@ -195,19 +269,23 @@ video {
 }
 
 /* ==========================================
-   RESPONSIVE DESIGN (MOBILE FRIENDLY)
+   RESPONSIVE DESIGN FOR MOBILE
    ========================================== */
-@media (max-width: 640px) {
-  .controls {
+@media (max-width: 900px) {
+  .main-content {
     flex-direction: column;
-    align-items: stretch;
   }
   
-  .controls select, .controls button {
-    width: 100%;
+  .partner-card, .local-card {
+    min-height: 320px;
   }
 
-  video {
-    height: 220px;
+  .partner-controls {
+    position: relative;
+    bottom: auto;
+    right: auto;
+    margin: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 }
