@@ -1,96 +1,86 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>1-on-1 Video Chat</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Top Bar -->
-  <header class="top-bar">
+  <!-- Header Section -->
+  <header class="navbar">
     <div class="logo">1-on-1 Video Chat</div>
-    <div class="auth-container">
+    <div class="auth-box">
       <div id="loggedOutUI">
-        <button id="loginBtn">Login with Google</button>
+        <button id="loginBtn" class="btn btn-login">Login with Google</button>
       </div>
-      <div id="loggedInUI" class="hidden">
-        <img id="userPhoto" class="profile-pic" src="" alt="User">
-        <span id="userName">User</span>
-        <button id="logoutBtn">Logout</button>
+      <div id="loggedInUI" class="user-profile hidden">
+        <img id="userPhoto" src="" alt="User Avatar" class="user-avatar" />
+        <span id="userName" class="user-name"></span>
+        <button id="logoutBtn" class="btn btn-logout">Logout</button>
       </div>
     </div>
   </header>
 
   <!-- Status Bar -->
-  <div class="info-bar">
-    <span id="status">Select country and click Start to find a partner!</span>
+  <div class="status-bar">
+    <p id="status">Select country and click Start to find a partner!</p>
   </div>
 
-  <!-- Main Grid Layout -->
-  <main class="main-content">
+  <!-- Main Video Container Layout -->
+  <main class="video-container">
     
-    <!-- Left Column: Local Video (You) -->
-    <div class="video-card local-card">
-      <div class="video-label">You</div>
+    <!-- Local User Video Panel -->
+    <div class="video-card my-card">
+      <span class="badge">You</span>
       <video id="localVideo" autoplay playsinline muted></video>
-      
-      <!-- Overlay controls on hover -->
       <div class="overlay-controls">
-        <button id="toggleMicBtn">🎤 Mute Mic</button>
-        <button id="toggleCamBtn">📹 Turn Off Cam</button>
+        <button id="toggleMicBtn" class="btn btn-control">🎤 Mute Mic</button>
+        <button id="toggleCamBtn" class="btn btn-control">📹 Turn Off Cam</button>
       </div>
     </div>
 
-    <!-- Right Column: Partner Video + Chat Overlay + Controls -->
-    <div class="right-column">
+    <!-- Remote Partner Video & Chat Panel -->
+    <div class="video-card partner-card">
+      <span class="badge partner-badge"><span id="partnerFlag">🌐</span> <span id="partnerName">Partner</span></span>
+      <video id="remoteVideo" autoplay playsinline></video>
       
-      <!-- Partner Card -->
-      <div class="partner-card">
-        <div class="partner-info-badge">
-          <span id="partnerFlag">🌐</span>
-          <span id="partnerName">Partner</span>
-        </div>
-        
-        <video id="remoteVideo" autoplay playsinline></video>
-
-        <!-- Chat Overlay inside Partner Video -->
-        <div class="chat-overlay">
-          <div id="chatMessages" class="chat-messages"></div>
-          <form id="chatForm" class="chat-form">
-            <input type="text" id="chatInput" placeholder="Type a message..." autocomplete="off" disabled />
-            <button type="submit" id="sendBtn" disabled>Send</button>
-          </form>
-        </div>
+      <!-- Text Chat Overlay -->
+      <div class="chat-overlay">
+        <div id="chatMessages" class="chat-messages"></div>
+        <form id="chatForm" class="chat-form">
+          <input type="text" id="chatInput" placeholder="Connect with a partner to chat..." disabled autocomplete="off" />
+          <button type="submit" id="sendBtn" class="btn btn-send" disabled>Send</button>
+        </form>
       </div>
-
-      <!-- Controls pinned to bottom -->
-      <div class="partner-controls">
-        <div class="country-wrapper">
-          <label for="countrySelect">Country:</label>
-          <select id="countrySelect">
-            <option value="Global">Global (All Countries)</option>
-            <option value="BD">Bangladesh 🇧🇩</option>
-            <option value="IN">India 🇮🇳</option>
-            <option value="US">United States 🇺🇸</option>
-            <option value="UK">United Kingdom 🇬🇧</option>
-          </select>
-        </div>
-
-        <div class="action-buttons">
-          <button id="reportBtn" class="icon-btn" title="Report User" disabled>🚩</button>
-          <button id="startBtn" class="big-btn start-btn">START</button>
-          <button id="stopBtn" class="big-btn stop-btn hidden">STOP</button>
-          <button id="nextBtn" class="big-btn next-btn" disabled>NEXT ➔</button>
-        </div>
-      </div>
-
     </div>
 
   </main>
 
+  <!-- Control Panel & Matchmaking -->
+  <footer class="controls-panel">
+    <div class="selector-group">
+      <label for="countrySelect">Country:</label>
+      <select id="countrySelect" class="custom-select">
+        <option value="Global">Global (All Countries)</option>
+        <option value="BD">Bangladesh 🇧🇩</option>
+        <option value="IN">India 🇮🇳</option>
+        <option value="US">United States 🇺🇸</option>
+        <option value="UK">United Kingdom 🇬🇧</option>
+      </select>
+    </div>
+
+    <div class="action-buttons">
+      <button id="reportBtn" class="btn btn-report" disabled>🚩</button>
+      <button id="startBtn" class="btn btn-primary">START</button>
+      <button id="stopBtn" class="btn btn-danger hidden">STOP</button>
+      <button id="nextBtn" class="btn btn-secondary" disabled>NEXT ➔</button>
+    </div>
+  </footer>
+
+  <!-- Socket.io & App Module Scripts -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="script.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>

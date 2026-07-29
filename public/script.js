@@ -8,7 +8,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 /* ==========================================
-   1. FIREBASE CONFIGURATION & AUTHENTICATION
+   1. FIREBASE AUTHENTICATION SETUP (OPTIONAL SAFEGUARD)
    ========================================== */
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
@@ -19,11 +19,20 @@ const firebaseConfig = {
   appId: "YOUR_APP_ID"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
+let auth = null;
+let provider = null;
 
-// Auth DOM Elements
+try {
+  if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
+    const app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    provider = new GoogleAuthProvider();
+  }
+} catch (e) {
+  console.warn("Firebase not configured correctly, continuing without auth.");
+}
+
+// Auth Elements
 const loginBtn = document.getElementById('loginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const loggedOutUI = document.getElementById('loggedOutUI');
@@ -33,51 +42,51 @@ const userName = document.getElementById('userName');
 
 let currentUser = null;
 
-if (loginBtn) {
+if (loginBtn && auth) {
   loginBtn.addEventListener('click', async () => {
     try {
       await signInWithPopup(auth, provider);
     } catch (error) {
-      console.error("Login failed:", error);
-      alert("Login failed! Please try again.");
+      console.error("Login Error:", error);
+      alert("Login failed!");
     }
   });
 }
 
-if (logoutBtn) {
+if (logoutBtn && auth) {
   logoutBtn.addEventListener('click', async () => {
     try {
       await signOut(auth);
     } catch (error) {
-      console.error("Logout failed:", error);
+      console.error("Logout Error:", error);
     }
   });
 }
 
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    currentUser = user;
-    if (loggedOutUI) loggedOutUI.classList.add('hidden');
-    if (loggedInUI) loggedInUI.classList.remove('hidden');
-    if (userPhoto) userPhoto.src = user.photoURL || '';
-    if (userName) userName.innerText = user.displayName || 'User';
-  } else {
-    currentUser = null;
-    if (loggedOutUI) loggedOutUI.classList.remove('hidden');
-    if (loggedInUI) loggedInUI.classList.add('hidden');
-  }
-});
+if (auth) {
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      currentUser = user;
+      if (loggedOutUI) loggedOutUI.classList.add('hidden');
+      if (loggedInUI) loggedInUI.classList.remove('hidden');
+      if (userPhoto) userPhoto.src = user.photoURL || '';
+      if (userName) userName.innerText = user.displayName || 'User';
+    } else {
+      currentUser = null;
+      if (loggedOutUI) loggedOutUI.classList.remove('hidden');
+      if (loggedInUI) loggedInUI.classList.add('hidden');
+    }
+  });
+}
 
 /* ==========================================
-   2. DOM ELEMENTS & GLOBAL VARIABLES
+   2. GLOBAL STATE & DOM ELEMENTS
    ========================================== */
 const socket = io();
 
-// Video Elements
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
 
-// Buttons & Controls
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
 const nextBtn = document.getElementById('nextBtn');
@@ -85,19 +94,16 @@ const reportBtn = document.getElementById('reportBtn');
 const toggleMicBtn = document.getElementById('toggleMicBtn');
 const toggleCamBtn = document.getElementById('toggleCamBtn');
 
-// Status & Displays
 const statusText = document.getElementById('status');
 const countrySelect = document.getElementById('countrySelect');
 const partnerName = document.getElementById('partnerName');
 const partnerFlag = document.getElementById('partnerFlag');
 
-// Chat Overlay Elements
 const chatForm = document.getElementById('chatForm');
 const chatInput = document.getElementById('chatInput');
 const chatMessages = document.getElementById('chatMessages');
 const sendBtn = document.getElementById('sendBtn');
 
-// Media & Connection States
 let localStream = null;
 let peerConnection = null;
 let currentPartnerId = null;
@@ -105,38 +111,51 @@ let isMicMuted = false;
 let isCamOff = false;
 let isSearching = false;
 
-// STUN / TURN Server Configuration (Metered / Google STUN)
-const rtcConfig = {
+// Default STUN Config
+let rtcConfig = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19020' },
-    { urls: 'stun:stun1.l.google.com:19020' },
-    { urls: 'stun:stun2.l.google.com:19020' }
+    { urls: 'stun:stun1.l.google.com:19020' }
   ]
 };
 
+// Metered TURN Credentials Fetch
+async function fetchIceServers() {
+  try {
+    const response = await fetch("https://talk-with-world.metered.live/api/v1/turn/credentials?apiKey=26fadb4d167788c9e3fd38870bcc415f14cd");
+    const iceServers = await response.json();
+    rtcConfig.iceServers = iceServers;
+    console.log("TURN Servers Loaded!");
+  } catch (error) {
+    console.error("TURN Server fetch failed, using default STUN:", error);
+  }
+}
+fetchIceServers();
+
 /* ==========================================
-   3. MEDIA INITIALIZATION & HARDWARE CONTROLS
+   3. MEDIA ACCESS (CAMERA & MIC)
    ========================================== */
 async function initMedia() {
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ 
-      video: { width: { ideal: 1280 }, height: { ideal: 720 } }, 
+      video: true, 
       audio: true 
     });
     if (localVideo) {
       localVideo.srcObject = localStream;
+      localVideo.muted = true; // Local video muted to prevent audio feedback
     }
   } catch (err) {
-    console.error("Media devices access error:", err);
+    console.error("Camera/Mic Error:", err);
     if (statusText) {
-      statusText.innerText = "Error: Please enable Camera & Microphone permissions!";
+      statusText.innerText = "Error: Please allow Camera & Microphone access in browser!";
       statusText.style.color = "#ef4444";
     }
   }
 }
 initMedia();
 
-// Microphone Toggle
+// Mic & Cam Controls
 if (toggleMicBtn) {
   toggleMicBtn.addEventListener('click', () => {
     if (!localStream) return;
@@ -145,12 +164,10 @@ if (toggleMicBtn) {
       isMicMuted = !isMicMuted;
       audioTrack.enabled = !isMicMuted;
       toggleMicBtn.innerText = isMicMuted ? "🎙️ Unmute Mic" : "🎤 Mute Mic";
-      toggleMicBtn.style.background = isMicMuted ? "rgba(239, 68, 68, 0.4)" : "rgba(255, 255, 255, 0.2)";
     }
   });
 }
 
-// Camera Toggle
 if (toggleCamBtn) {
   toggleCamBtn.addEventListener('click', () => {
     if (!localStream) return;
@@ -159,13 +176,12 @@ if (toggleCamBtn) {
       isCamOff = !isCamOff;
       videoTrack.enabled = !isCamOff;
       toggleCamBtn.innerText = isCamOff ? "📹 Turn On Cam" : "📹 Turn Off Cam";
-      toggleCamBtn.style.background = isCamOff ? "rgba(239, 68, 68, 0.4)" : "rgba(255, 255, 255, 0.2)";
     }
   });
 }
 
 /* ==========================================
-   4. MATCHMAKING & CALL CONTROL HANDLERS
+   4. CALL CONTROLS & MATCHMAKING
    ========================================== */
 if (startBtn) {
   startBtn.addEventListener('click', () => {
@@ -178,9 +194,7 @@ if (startBtn) {
   });
 }
 
-if (stopBtn) {
-  stopBtn.addEventListener('click', stopChat);
-}
+if (stopBtn) stopBtn.addEventListener('click', stopChat);
 
 if (nextBtn) {
   nextBtn.addEventListener('click', () => {
@@ -192,7 +206,7 @@ if (nextBtn) {
 if (reportBtn) {
   reportBtn.addEventListener('click', () => {
     if (currentPartnerId) {
-      alert("User has been reported to moderators.");
+      alert("Partner reported!");
       disconnectPeer();
       findPartner();
     }
@@ -239,7 +253,7 @@ function stopChat() {
 }
 
 /* ==========================================
-   5. SOCKET.IO SIGNALING & EVENTS
+   5. SOCKET.IO SIGNALING
    ========================================== */
 socket.on('waiting', () => {
   if (statusText) {
@@ -271,7 +285,7 @@ socket.on('partner-found', async (data) => {
     await peerConnection.setLocalDescription(offer);
     socket.emit('signal', { to: currentPartnerId, signal: offer });
   } catch (err) {
-    console.error("Offer creation error:", err);
+    console.error("Offer error:", err);
   }
 });
 
@@ -290,28 +304,25 @@ socket.on('signal', async (data) => {
       await peerConnection.addIceCandidate(new RTCIceCandidate(data.signal.candidate));
     }
   } catch (err) {
-    console.error("Signaling handle error:", err);
+    console.error("Signaling error:", err);
   }
 });
 
 socket.on('partner-left', () => {
   if (statusText) {
-    statusText.innerText = "Partner left the chat.";
+    statusText.innerText = "Partner disconnected.";
     statusText.style.color = "#ef4444";
   }
   disconnectPeer();
   disableChat();
   
-  // Auto search next if user was in searching mode
   if (isSearching) {
-    setTimeout(() => {
-      if (isSearching) findPartner();
-    }, 1200);
+    setTimeout(() => { if (isSearching) findPartner(); }, 1000);
   }
 });
 
 /* ==========================================
-   6. WEBRTC PEER CONNECTION PIPELINE
+   6. WEBRTC ENGINE
    ========================================== */
 function createPeerConnection() {
   peerConnection = new RTCPeerConnection(rtcConfig);
@@ -336,15 +347,6 @@ function createPeerConnection() {
       });
     }
   };
-
-  peerConnection.oniceconnectionstatechange = () => {
-    if (peerConnection) {
-      console.log("ICE Connection State:", peerConnection.iceConnectionState);
-      if (peerConnection.iceConnectionState === 'disconnected' || peerConnection.iceConnectionState === 'failed') {
-        if (statusText) statusText.innerText = "Connection unstable or lost...";
-      }
-    }
-  };
 }
 
 function disconnectPeer() {
@@ -361,7 +363,7 @@ function disconnectPeer() {
 }
 
 /* ==========================================
-   7. TEXT CHAT SYSTEM OVERLAY
+   7. CHAT SYSTEM
    ========================================== */
 if (chatForm) {
   chatForm.addEventListener('submit', (e) => {
