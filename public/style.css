@@ -101,7 +101,7 @@ button {
 }
 
 /* ==========================================
-   MAIN CONTENT & FIXED VIDEO CARDS
+   MAIN CONTENT & GRID LAYOUT
    ========================================== */
 .main-content {
   display: flex;
@@ -115,7 +115,7 @@ button {
   box-sizing: border-box;
 }
 
-/* Base Card Style */
+/* Base Video Card */
 .video-card {
   position: relative;
   background-color: #1e293b;
@@ -124,7 +124,7 @@ button {
   border: 1px solid #334155;
 }
 
-/* Local Screen (Left Side - Full Height) */
+/* Left Column: Local Video (Full Height) */
 .local-card {
   flex: 1;
   height: 100%;
@@ -132,21 +132,20 @@ button {
   flex-direction: column;
 }
 
-/* Right Side Column Structure */
+/* Right Column: GRID System (Guarantees Full Stretch) */
 .right-column {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  display: grid;
+  grid-template-rows: 1fr auto; /* প্রথমটা যতটুকু খালি পাবে টেনে নিবে, ২য়টা (বাটন) যতটুকু দরকার নিবে */
   height: 100%;
   gap: 16px;
 }
 
-/* Partner Screen (Forced Height Stretch) */
+/* Partner Card Fill Entire Top Grid Frame */
 .partner-card {
   width: 100%;
-  height: calc(100% - 90px) !important; /* কন্ট্রোল বারের সাইজ বাদ দিয়ে পুরোটা নিবে */
-  flex-grow: 1;
+  height: 100%;
+  min-height: 0; /* Important for CSS Grid stretch */
 }
 
 .video-label {
@@ -190,7 +189,7 @@ button {
   color: #38bdf8;
 }
 
-/* Video Elements */
+/* Video Frame Fill */
 video {
   width: 100%;
   height: 100%;
@@ -202,7 +201,7 @@ video {
   transform: scaleX(-1);
 }
 
-/* Hover Controls inside Local Screen */
+/* Hover Controls inside Local Video */
 .overlay-controls {
   position: absolute;
   bottom: 0;
@@ -240,10 +239,9 @@ video {
 }
 
 /* ==========================================
-   OmeTV STYLE CONTROLS (Fixed Height at Bottom)
+   OmeTV CONTROLS (Bottom Grid Row)
    ========================================== */
 .partner-controls {
-  height: 74px; /* ফিক্সড হাইট */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -330,13 +328,14 @@ button:disabled {
     height: auto;
   }
   .right-column {
+    display: flex;
+    flex-direction: column;
     height: auto;
   }
   .partner-card {
-    height: 350px !important;
+    min-height: 320px;
   }
   .partner-controls {
-    height: auto;
     flex-wrap: wrap;
     justify-content: center;
     padding: 12px;
