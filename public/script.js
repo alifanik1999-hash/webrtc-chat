@@ -11,7 +11,6 @@ const firebaseConfig = {
   measurementId: "G-2Z4X8B7HHY"
 };
 
-// Initialize Firebase App & Auth
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
@@ -26,10 +25,10 @@ const loggedInUI = document.getElementById('loggedInUI');
 const userNameDisplay = document.getElementById('userName');
 const startBtn = document.getElementById('startBtn');
 const nextBtn = document.getElementById('nextBtn');
+const stopBtn = document.getElementById('stopBtn');
 const statusText = document.getElementById('status');
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
-const languageSelect = document.getElementById('languageSelect');
 const countrySelect = document.getElementById('countrySelect');
 
 // ==========================================
@@ -84,6 +83,7 @@ auth.onAuthStateChanged((user) => {
     if (userNameDisplay) userNameDisplay.innerText = '';
     if (startBtn) startBtn.disabled = true;
     if (nextBtn) nextBtn.disabled = true;
+    if (stopBtn) stopBtn.disabled = true;
     if (statusText) statusText.innerText = "Please sign in with Google to start";
   }
 });
@@ -98,7 +98,6 @@ let peerConnection = null;
 let currentRoomId = null;
 let pendingCandidates = [];
 
-// TURN & STUN Server Configurations (Metered.ca Active Credentials)
 const rtcConfig = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -121,7 +120,6 @@ const rtcConfig = {
   ]
 };
 
-// ক্যামেরা এবং মাইক চালু করা
 async function startLocalMedia() {
   if (!localStream) {
     try {
@@ -136,19 +134,20 @@ async function startLocalMedia() {
 
 startLocalMedia();
 
-// Matchmaking Event Listeners
+// Start Matchmaking
 if (startBtn) {
   startBtn.addEventListener('click', () => {
-    const language = languageSelect ? languageSelect.value : 'English';
     const country = countrySelect ? countrySelect.value : 'Global';
 
     if (statusText) statusText.innerText = "Searching for a partner...";
-    socket.emit('find-match', { language, country });
+    socket.emit('find-match', { country });
     startBtn.disabled = true;
     if (nextBtn) nextBtn.disabled = false;
+    if (stopBtn) stopBtn.disabled = false;
   });
 }
 
+// Next Match
 if (nextBtn) {
   nextBtn.addEventListener('click', () => {
     if (remoteVideo) remoteVideo.srcObject = null;
@@ -158,17 +157,30 @@ if (nextBtn) {
   });
 }
 
-socket.on('start-rematch', ({ language, country }) => {
-  socket.emit('find-match', { language, country });
-});
+// 🛑 Stop Video Chat Functionality
+if (stopBtn) {
+  stopBtn.addEventListener('click', () => {
+    if (remoteVideo) remoteVideo.srcObject = null;
+    closePeerConnection();
+    
+    // Server-এ জানান দেওয়া যে কনেকশন লিভ করা হয়েছে
+    socket.emit('next-user'); 
+    
+    if (statusText) statusText.innerText = "Stopped. Click Start to search again.";
+    
+    startBtn.disabled = false;
+    nextBtn.disabled = true;
+    stopBtn.disabled = true;
+  });
+}
 
 socket.on('waiting', (msg) => {
   if (statusText) statusText.innerText = msg;
 });
 
-// Match Found & Connection Setup
+// Match Found
 socket.on('match-found', async ({ roomId, isInitiator }) => {
-  console.log(`Matched! Room ID: ${roomId}, Initiator: ${isInitiator}`);
+  console.log(`Matched! Room ID: ${roomId}`);
   if (statusText) statusText.innerText = "Connected with a partner!";
   currentRoomId = roomId;
 
@@ -207,7 +219,6 @@ async function createPeerConnection() {
   };
 
   peerConnection.ontrack = (event) => {
-    console.log("Remote track received:", event.streams);
     if (remoteVideo) {
       if (event.streams && event.streams[0]) {
         remoteVideo.srcObject = event.streams[0];
@@ -216,7 +227,6 @@ async function createPeerConnection() {
         stream.addTrack(event.track);
         remoteVideo.srcObject = stream;
       }
-
       remoteVideo.play().catch(e => console.log("Video Play Error:", e));
     }
   };
@@ -259,13 +269,13 @@ async function processPendingCandidates() {
   }
 }
 
-// Peer Disconnected Cleanup
 socket.on('peer-disconnected', () => {
   console.log('Partner disconnected');
   if (statusText) statusText.innerText = "Partner disconnected. Click Next or Start to search again.";
   if (remoteVideo) remoteVideo.srcObject = null;
   closePeerConnection();
   if (startBtn) startBtn.disabled = false;
+  if (stopBtn) stopBtn.disabled = true;
 });
 
 function closePeerConnection() {
@@ -281,12 +291,8 @@ function closePeerConnection() {
 // ৫. MEDIA CONTROLS & REPORT FUNCTIONS
 // ==========================================
 
-// Audio Mute / Unmute
 window.toggleAudio = function() {
-  if (!localStream) {
-    console.error("Local stream not available yet.");
-    return;
-  }
+  if (!localStream) return;
   const audioTrack = localStream.getAudioTracks()[0];
   if (audioTrack) {
     audioTrack.enabled = !audioTrack.enabled;
@@ -295,12 +301,8 @@ window.toggleAudio = function() {
   }
 };
 
-// Video On / Off
 window.toggleVideo = function() {
-  if (!localStream) {
-    console.error("Local stream not available yet.");
-    return;
-  }
+  if (!localStream) return;
   const videoTrack = localStream.getVideoTracks()[0];
   if (videoTrack) {
     videoTrack.enabled = !videoTrack.enabled;
@@ -309,17 +311,13 @@ window.toggleVideo = function() {
   }
 };
 
-// Quick Report Logic
 window.reportUser = function() {
   if (!currentRoomId) {
     alert("You are not connected to anyone!");
     return;
   }
-
-  // Socket দিয়ে সার্ভারে রিপোর্ট পাঠাবে
   socket.emit('report-user', { roomId: currentRoomId });
   alert("User reported successfully.");
 
-  // নতুন পার্টনারের জন্য স্কিপ করবে
   if (nextBtn) nextBtn.click();
 };
