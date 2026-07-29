@@ -20,7 +20,6 @@ const firebaseConfig = {
   measurementId: "G-2Z4X8B7HHY"
 };
 
-// Initialize Firebase (v10 Modular Style)
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
@@ -31,6 +30,7 @@ const provider = new GoogleAuthProvider();
 const loggedOutUI = document.getElementById('loggedOutUI');
 const loggedInUI = document.getElementById('loggedInUI');
 const userNameDisplay = document.getElementById('userName');
+const userPhotoDisplay = document.getElementById('userPhoto');
 const loginBtn = document.getElementById('loginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const startBtn = document.getElementById('startBtn');
@@ -44,7 +44,6 @@ const countrySelect = document.getElementById('countrySelect');
 /* ==========================================
    ৩. FIREBASE AUTHENTICATION LOGIC
    ========================================== */
-// Login Event Listener
 if (loginBtn) {
   loginBtn.addEventListener('click', async () => {
     try {
@@ -56,7 +55,6 @@ if (loginBtn) {
   });
 }
 
-// Logout Event Listener
 if (logoutBtn) {
   logoutBtn.addEventListener('click', async () => {
     try {
@@ -67,12 +65,12 @@ if (logoutBtn) {
   });
 }
 
-// Auth State Observer
 onAuthStateChanged(auth, (user) => {
   if (user) {
     if (loggedOutUI) loggedOutUI.classList.add('hidden');
     if (loggedInUI) loggedInUI.classList.remove('hidden');
     if (userNameDisplay) userNameDisplay.innerText = `Logged in as: ${user.displayName || 'User'}`;
+    if (userPhotoDisplay) userPhotoDisplay.src = user.photoURL || 'https://via.placeholder.com/32';
     if (startBtn) startBtn.disabled = false;
     if (statusText) statusText.innerText = "Select options and click Start to find a partner!";
   } else {
@@ -95,15 +93,32 @@ let peerConnection = null;
 let currentRoomId = null;
 let pendingCandidates = [];
 
-// Google STUN Configuration
+// Metered TURN + Google STUN Configurations
 const rtcConfig = {
   iceServers: [
+    // Google STUN Servers
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' }
+    { urls: 'stun:stun1.l.google.com:19302' },
+    
+    // Metered TURN Servers
+    {
+      urls: "turn:talk-with-world.metered.live:80",
+      username: "d2d148e6efef2cfd01e1471d",
+      credential: "7gA+e532a/4Q9H2d"
+    },
+    {
+      urls: "turn:talk-with-world.metered.live:443",
+      username: "d2d148e6efef2cfd01e1471d",
+      credential: "7gA+e532a/4Q9H2d"
+    },
+    {
+      urls: "turn:talk-with-world.metered.live:443?transport=tcp",
+      username: "d2d148e6efef2cfd01e1471d",
+      credential: "7gA+e532a/4Q9H2d"
+    }
   ]
 };
 
-// ক্যামেরা এবং মাইক চালু করার ফাংশন
 async function startLocalMedia() {
   if (!localStream) {
     try {
@@ -113,24 +128,22 @@ async function startLocalMedia() {
       });
       if (localVideo) {
         localVideo.srcObject = localStream;
-        localVideo.muted = true; // অডিও ফিডব্যাক বন্ধ রাখতে Local Mute
+        localVideo.muted = true;
         await localVideo.play().catch(e => console.log("Autoplay blocked:", e));
       }
     } catch (err) {
-      console.error('Camera/Mic permission error:', err);
+      console.error('Camera/Mic error:', err);
       if (statusText) statusText.innerText = "Camera/Microphone permission required!";
-      alert("ক্যামেরা ব্যবহারের অনুমতি দেওয়া হয়নি। ব্রাউজার থেকে Camera & Microphone Permission 'Allow' করে পেজটি Reload দিন।");
     }
   }
 }
 
-// পেজ লোড হলেই লোকাল স্ট্রিম চালু
 document.addEventListener('DOMContentLoaded', startLocalMedia);
-startLocalMedia(); // Safety Fallback
+startLocalMedia();
 
-// Matchmaking Event Listeners
 if (startBtn) {
-  startBtn.addEventListener('click', () => {
+  startBtn.addEventListener('click', async () => {
+    await startLocalMedia();
     const language = languageSelect ? languageSelect.value : 'English';
     const country = countrySelect ? countrySelect.value : 'Global';
 
@@ -158,9 +171,8 @@ socket.on('waiting', (msg) => {
   if (statusText) statusText.innerText = msg;
 });
 
-// Match Found & Connection Setup
 socket.on('match-found', async ({ roomId, isInitiator }) => {
-  console.log(`Matched! Room ID: ${roomId}, Initiator: ${isInitiator}`);
+  console.log(`Matched! Room: ${roomId}, Initiator: ${isInitiator}`);
   if (statusText) statusText.innerText = "Connected with a partner!";
   currentRoomId = roomId;
 
@@ -208,13 +220,11 @@ async function createPeerConnection() {
         stream.addTrack(event.track);
         remoteVideo.srcObject = stream;
       }
-
-      remoteVideo.play().catch(e => console.log("Video Play Error:", e));
+      remoteVideo.play().catch(e => console.log("Remote Video Play Error:", e));
     }
   };
 }
 
-// Signaling Handler
 socket.on('signal', async ({ signal }) => {
   if (!peerConnection) return;
 
@@ -251,9 +261,7 @@ async function processPendingCandidates() {
   }
 }
 
-// Peer Disconnected Cleanup
 socket.on('peer-disconnected', () => {
-  console.log('Partner disconnected');
   if (statusText) statusText.innerText = "Partner disconnected. Click Next or Start to search again.";
   if (remoteVideo) remoteVideo.srcObject = null;
   closePeerConnection();
