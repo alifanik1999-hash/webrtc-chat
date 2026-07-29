@@ -44,25 +44,34 @@
         <button id="loginBtn" type="button" onclick="handleGoogleLogin()">Sign in with Google</button>
       </div>
       <div id="loggedInUI" class="hidden">
+        <img id="userPhoto" src="" alt="Profile" class="profile-pic">
         <span id="userName"></span>
         <button id="logoutBtn" type="button" onclick="handleLogout()">Logout</button>
       </div>
     </div>
   </header>
 
-  <!-- Status & Device Info Bar -->
+  <!-- Status Bar -->
   <div class="info-bar">
-    <div id="deviceInfo">
-      🎥 <b>Camera:</b> <span id="cameraName">Checking...</span> &nbsp;|&nbsp; 
-      🎙️ <b>Mic:</b> <span id="micName">Checking...</span>
-    </div>
     <div id="status">Please sign in with Google to start</div>
   </div>
 
   <!-- Main Video Section -->
   <div class="main-content">
     
-    <!-- Partner Video Card -->
+    <!-- 1. Your Video Card (Left Side) -->
+    <div class="video-card local-card">
+      <span class="video-label">You</span>
+      <video id="localVideo" autoplay playsinline muted></video>
+
+      <!-- Hover Controls inside Local Video -->
+      <div class="overlay-controls">
+        <button id="muteAudioBtn" onclick="toggleAudio()" title="Toggle Mic">🎤 Mute</button>
+        <button id="toggleVideoBtn" onclick="toggleVideo()" title="Toggle Camera">📹 Video Off</button>
+      </div>
+    </div>
+
+    <!-- 2. Partner Video Card (Right Side) -->
     <div class="video-card partner-card">
       <span class="video-label">Partner</span>
       <video id="remoteVideo" autoplay playsinline></video>
@@ -108,20 +117,8 @@
       </div>
     </div>
 
-    <!-- Your Video Card -->
-    <div class="video-card local-card">
-      <span class="video-label">You</span>
-      <video id="localVideo" autoplay playsinline muted></video>
-
-      <!-- Hover Controls inside Local Video -->
-      <div class="overlay-controls">
-        <button id="muteAudioBtn" onclick="toggleAudio()" title="Toggle Mic">🎤 Mute</button>
-        <button id="toggleVideoBtn" onclick="toggleVideo()" title="Toggle Camera">📹 Video Off</button>
-      </div>
-    </div>
-
   </div>
 
-  <script src="script.js?v=1.5"></script>
+  <script src="script.js?v=1.7"></script>
 </body>
 </html>

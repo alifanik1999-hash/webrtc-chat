@@ -23,6 +23,7 @@ const provider = new firebase.auth.GoogleAuthProvider();
 const loggedOutUI = document.getElementById('loggedOutUI');
 const loggedInUI = document.getElementById('loggedInUI');
 const userNameDisplay = document.getElementById('userName');
+const userPhotoDisplay = document.getElementById('userPhoto');
 const startBtn = document.getElementById('startBtn');
 const nextBtn = document.getElementById('nextBtn');
 const stopBtn = document.getElementById('stopBtn');
@@ -30,8 +31,11 @@ const statusText = document.getElementById('status');
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
 const countrySelect = document.getElementById('countrySelect');
-const cameraNameDisplay = document.getElementById('cameraName');
-const micNameDisplay = document.getElementById('micName');
+const muteAudioBtn = document.getElementById('muteAudioBtn');
+const toggleVideoBtn = document.getElementById('toggleVideoBtn');
+
+let activeCamName = "Cam";
+let activeMicName = "Mic";
 
 // ==========================================
 // ৩. RELIABLE AUTH LOGIC
@@ -75,14 +79,19 @@ auth.onAuthStateChanged((user) => {
     console.log("Auth state: Logged In as", user.displayName);
     if (loggedOutUI) loggedOutUI.classList.add('hidden');
     if (loggedInUI) loggedInUI.classList.remove('hidden');
-    if (userNameDisplay) userNameDisplay.innerText = `Logged in as: ${user.displayName || 'User'}`;
+    
+    if (userNameDisplay) userNameDisplay.innerText = user.displayName || 'User';
+    if (userPhotoDisplay) userPhotoDisplay.src = user.photoURL || 'https://via.placeholder.com/32';
+
     if (startBtn) startBtn.disabled = false;
-    if (statusText) statusText.innerText = "Select options and click Start to find a partner!";
+    if (statusText) statusText.innerText = "Select country and click Start to find a partner!";
   } else {
     console.log("Auth state: Logged Out");
     if (loggedOutUI) loggedOutUI.classList.remove('hidden');
     if (loggedInUI) loggedInUI.classList.add('hidden');
     if (userNameDisplay) userNameDisplay.innerText = '';
+    if (userPhotoDisplay) userPhotoDisplay.src = '';
+
     if (startBtn) startBtn.disabled = true;
     if (nextBtn) nextBtn.disabled = true;
     if (stopBtn) stopBtn.disabled = true;
@@ -128,22 +137,31 @@ async function startLocalMedia() {
       localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       if (localVideo) localVideo.srcObject = localStream;
 
-      // সক্রিয় ক্যামেরা ও মাইক্রোফোনের নাম স্ক্রিনে দেখানো
       const videoTrack = localStream.getVideoTracks()[0];
       const audioTrack = localStream.getAudioTracks()[0];
 
-      if (cameraNameDisplay && videoTrack) {
-        cameraNameDisplay.innerText = videoTrack.label || "Active Camera";
-      }
-      if (micNameDisplay && audioTrack) {
-        micNameDisplay.innerText = audioTrack.label || "Active Microphone";
-      }
+      if (videoTrack && videoTrack.label) activeCamName = videoTrack.label;
+      if (audioTrack && audioTrack.label) activeMicName = audioTrack.label;
+
+      updateControlButtons();
 
     } catch (err) {
       console.error('Camera/Mic permission error:', err);
       if (statusText) statusText.innerText = "Camera/Microphone permission required!";
-      if (cameraNameDisplay) cameraNameDisplay.innerText = "Permission Denied";
-      if (micNameDisplay) micNameDisplay.innerText = "Permission Denied";
+    }
+  }
+}
+
+function updateControlButtons() {
+  if (localStream) {
+    const audioTrack = localStream.getAudioTracks()[0];
+    const videoTrack = localStream.getVideoTracks()[0];
+
+    if (muteAudioBtn && audioTrack) {
+      muteAudioBtn.innerText = audioTrack.enabled ? `🎤 Mute (${activeMicName})` : `🎙️ Unmute`;
+    }
+    if (toggleVideoBtn && videoTrack) {
+      toggleVideoBtn.innerText = videoTrack.enabled ? `📹 Video Off (${activeCamName})` : `📷 Video On`;
     }
   }
 }
@@ -309,12 +327,7 @@ window.toggleAudio = function() {
   const audioTrack = localStream.getAudioTracks()[0];
   if (audioTrack) {
     audioTrack.enabled = !audioTrack.enabled;
-    const btn = document.getElementById('muteAudioBtn');
-    if (btn) btn.innerText = audioTrack.enabled ? '🎤 Mute' : '🎙️ Unmute';
-    if (micNameDisplay) {
-      micNameDisplay.style.color = audioTrack.enabled ? '#00d2d3' : '#ff4757';
-      micNameDisplay.innerText = audioTrack.enabled ? (audioTrack.label || 'Active') : 'Muted';
-    }
+    updateControlButtons();
   }
 };
 
@@ -323,12 +336,7 @@ window.toggleVideo = function() {
   const videoTrack = localStream.getVideoTracks()[0];
   if (videoTrack) {
     videoTrack.enabled = !videoTrack.enabled;
-    const btn = document.getElementById('toggleVideoBtn');
-    if (btn) btn.innerText = videoTrack.enabled ? '📹 Video Off' : '📷 Video On';
-    if (cameraNameDisplay) {
-      cameraNameDisplay.style.color = videoTrack.enabled ? '#00d2d3' : '#ff4757';
-      cameraNameDisplay.innerText = videoTrack.enabled ? (videoTrack.label || 'Active') : 'Disabled';
-    }
+    updateControlButtons();
   }
 };
 
