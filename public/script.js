@@ -1,20 +1,89 @@
-const socket = io();
+// ==========================================
+// ১. FIREBASE CONFIGURATION & INITIALIZATION
+// ==========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyC2mJpT-fX6p5O6_d0E2x7L-7W8P0Y1Z2", // আপনার আসল Firebase API Key দিয়ে রিপ্লেস করুন (যদি আলাদা থাকে)
+  authDomain: "talkwithworld.firebaseapp.com",
+  projectId: "talkwithworld",
+  storageBucket: "talkwithworld.appspot.com",
+  messagingSenderId: "123456789012",
+  appId: "1:123456789012:web:abcdef1234567890"
+};
 
-// DOM Elements
-const localVideo = document.getElementById('localVideo');
-const remoteVideo = document.getElementById('remoteVideo');
+// Initialize Firebase App & Auth
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const auth = firebase.auth();
+const provider = new firebase.auth.GoogleAuthProvider();
+
+// ==========================================
+// ২. DOM ELEMENTS
+// ==========================================
+const loggedOutUI = document.getElementById('loggedOutUI');
+const loggedInUI = document.getElementById('loggedInUI');
+const userNameDisplay = document.getElementById('userName');
 const startBtn = document.getElementById('startBtn');
 const nextBtn = document.getElementById('nextBtn');
 const statusText = document.getElementById('status');
+const localVideo = document.getElementById('localVideo');
+const remoteVideo = document.getElementById('remoteVideo');
 const languageSelect = document.getElementById('languageSelect');
 const countrySelect = document.getElementById('countrySelect');
+
+// ==========================================
+// ৩. FIREBASE AUTHENTICATION LOGIC
+// ==========================================
+window.handleGoogleLogin = function() {
+  auth.signInWithPopup(provider)
+    .then((result) => {
+      console.log("Logged in user:", result.user);
+    })
+    .catch((error) => {
+      console.error("Login Error:", error);
+      alert("Sign in failed: " + error.message);
+    });
+};
+
+window.handleLogout = function() {
+  auth.signOut()
+    .then(() => {
+      console.log("User signed out");
+    })
+    .catch((error) => {
+      console.error("Logout Error:", error);
+    });
+};
+
+// Auth State Observer
+auth.onAuthStateChanged((user) => {
+  if (user) {
+    if (loggedOutUI) loggedOutUI.classList.add('hidden');
+    if (loggedInUI) loggedInUI.classList.remove('hidden');
+    if (userNameDisplay) userNameDisplay.innerText = `Logged in as: ${user.displayName || 'User'}`;
+    if (startBtn) startBtn.disabled = false;
+    if (statusText) statusText.innerText = "Select options and click Start to find a partner!";
+  } else {
+    if (loggedOutUI) loggedOutUI.classList.remove('hidden');
+    if (loggedInUI) loggedInUI.classList.add('hidden');
+    if (userNameDisplay) userNameDisplay.innerText = '';
+    if (startBtn) startBtn.disabled = true;
+    if (nextBtn) nextBtn.disabled = true;
+    if (statusText) statusText.innerText = "Please sign in with Google to start";
+  }
+});
+
+// ==========================================
+// ৪. WEBRTC & SOCKET.IO LOGIC
+// ==========================================
+const socket = io();
 
 let localStream = null;
 let peerConnection = null;
 let currentRoomId = null;
 let pendingCandidates = [];
 
-// STUN Server Configuration
+// Google STUN Configuration
 const rtcConfig = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -22,23 +91,23 @@ const rtcConfig = {
   ]
 };
 
-// ১. ক্যামেরা ও মাইক্রোফোন পারমিশন নেওয়া
+// ক্যামেরা এবং মাইক চালু করা
 async function startLocalMedia() {
   if (!localStream) {
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       if (localVideo) localVideo.srcObject = localStream;
     } catch (err) {
-      console.error('Camera/Mic access error:', err);
+      console.error('Camera/Mic permission error:', err);
       if (statusText) statusText.innerText = "Camera/Microphone permission required!";
     }
   }
 }
 
-// পেজ লোড হলেই লোকাল স্ট্রিম শুরু
+// পেজ লোড হলেই লোকাল স্ট্রিম চালু
 startLocalMedia();
 
-// ২. Start এবং Next বাটন হ্যান্ডলার
+// Matchmaking Event Listeners
 if (startBtn) {
   startBtn.addEventListener('click', () => {
     const language = languageSelect ? languageSelect.value : 'English';
@@ -68,7 +137,7 @@ socket.on('waiting', (msg) => {
   if (statusText) statusText.innerText = msg;
 });
 
-// ৩. Match Found হলে WebRTC Connection তৈরি
+// Match Found & Connection Setup
 socket.on('match-found', async ({ roomId, isInitiator }) => {
   console.log(`Matched! Room ID: ${roomId}, Initiator: ${isInitiator}`);
   if (statusText) statusText.innerText = "Connected with a partner!";
@@ -87,21 +156,18 @@ socket.on('match-found', async ({ roomId, isInitiator }) => {
   }
 });
 
-// ৪. Peer Connection ও Track ম্যানেজমেন্ট
 async function createPeerConnection() {
   closePeerConnection();
 
   peerConnection = new RTCPeerConnection(rtcConfig);
   pendingCandidates = [];
 
-  // Local Tracks যোগ করা
   if (localStream) {
     localStream.getTracks().forEach(track => {
       peerConnection.addTrack(track, localStream);
     });
   }
 
-  // ICE Candidate ট্রান্সফার
   peerConnection.onicecandidate = (event) => {
     if (event.candidate && currentRoomId) {
       socket.emit('signal', {
@@ -111,7 +177,6 @@ async function createPeerConnection() {
     }
   };
 
-  // Remote Stream গ্রহণ করা
   peerConnection.ontrack = (event) => {
     console.log("Remote track received:", event.streams);
     if (remoteVideo) {
@@ -123,13 +188,12 @@ async function createPeerConnection() {
         remoteVideo.srcObject = stream;
       }
 
-      // Autoplay নিশ্চিতকরণ
       remoteVideo.play().catch(e => console.log("Video Play Error:", e));
     }
   };
 }
 
-// ৫. Signaling Data হ্যান্ডলিং
+// Signaling Handler
 socket.on('signal', async ({ signal }) => {
   if (!peerConnection) return;
 
@@ -166,7 +230,7 @@ async function processPendingCandidates() {
   }
 }
 
-// ৬. Peer Disconnect Cleanup
+// Peer Disconnected Cleanup
 socket.on('peer-disconnected', () => {
   console.log('Partner disconnected');
   if (statusText) statusText.innerText = "Partner disconnected. Click Next or Start to search again.";
