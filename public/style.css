@@ -101,7 +101,7 @@ button {
 }
 
 /* ==========================================
-   MAIN CONTENT & FIXED VIDEO CARDS
+   MAIN CONTENT & LAYOUT STRUCTURE
    ========================================== */
 .main-content {
   display: flex;
@@ -111,10 +111,11 @@ button {
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
-  height: calc(100vh - 120px); /* স্ক্রিনের উচ্চতা অনুযায়ী ফিক্সড ফ্রেম */
+  height: calc(100vh - 120px);
   box-sizing: border-box;
 }
 
+/* Common Video Box Settings */
 .video-card {
   position: relative;
   background-color: #1e293b;
@@ -123,17 +124,27 @@ button {
   border: 1px solid #334155;
   display: flex;
   flex-direction: column;
-  height: 100%; /* ভিডিও আসার পরেও উচ্চতা একই থাকবে */
 }
 
-/* Local Screen (Left Side) */
+/* Local Screen (Left Side - Stretches Full Height) */
 .local-card {
   flex: 1;
+  height: 100%;
 }
 
-/* Partner Screen (Right Side) */
+/* Right Side Column (Holds Partner Video + Controls) */
+.right-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+}
+
+/* Partner Screen (Takes remaining vertical space in right column) */
 .partner-card {
-  flex: 2;
+  flex: 1;
+  width: 100%;
 }
 
 .video-label {
@@ -177,11 +188,11 @@ button {
   color: #38bdf8;
 }
 
-/* 🔒 Fixed Stream Sizing */
+/* Video Frame Sizing */
 video {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* ফ্রেমের বাইরে যাবে না */
+  object-fit: cover;
   background-color: #020617;
 }
 
@@ -229,23 +240,20 @@ video {
 }
 
 /* ==========================================
-   OmeTV STYLE CONTROLS (Always Visible)
+   OmeTV STYLE CONTROLS (Bottom Right)
    ========================================== */
 .partner-controls {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: space-between;
+  gap: 12px;
   background: rgba(15, 23, 42, 0.92);
   backdrop-filter: blur(12px);
-  padding: 14px 20px;
+  padding: 14px 18px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.6);
-  z-index: 15;
-  max-width: calc(100% - 40px);
+  width: 100%;
 }
 
 .country-wrapper {
@@ -255,7 +263,7 @@ video {
   font-size: 15px;
   color: #cbd5e1;
   font-weight: 600;
-  white-space: nowrap; /* Country লেখা কেটে যাবে না */
+  white-space: nowrap;
   flex-shrink: 0;
 }
 
@@ -272,13 +280,13 @@ select {
 .action-buttons {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-/* Big OmeTV Style Action Buttons */
+/* OmeTV Style Action Buttons */
 .big-btn {
-  padding: 16px 32px;
-  font-size: 18px;
+  padding: 14px 24px;
+  font-size: 16px;
   font-weight: 800;
   letter-spacing: 1px;
   border-radius: 12px;
@@ -293,7 +301,7 @@ select {
 }
 .start-btn:hover:not(:disabled) { 
   background-color: #059669; 
-  transform: scale(1.05);
+  transform: scale(1.03);
 }
 
 .stop-btn { 
@@ -301,7 +309,7 @@ select {
 }
 .stop-btn:hover:not(:disabled) { 
   background-color: #dc2626; 
-  transform: scale(1.05);
+  transform: scale(1.03);
 }
 
 .next-btn { 
@@ -309,12 +317,12 @@ select {
 }
 .next-btn:hover:not(:disabled) { 
   background-color: #2563eb; 
-  transform: scale(1.05);
+  transform: scale(1.03);
 }
 
 .icon-btn {
-  padding: 16px;
-  font-size: 20px;
+  padding: 14px;
+  font-size: 18px;
   background-color: #374151;
   border-radius: 12px;
   white-space: nowrap;
@@ -322,7 +330,7 @@ select {
 
 .icon-btn:hover:not(:disabled) {
   background-color: #4b5563;
-  transform: scale(1.05);
+  transform: scale(1.03);
 }
 
 button:disabled {
@@ -344,28 +352,27 @@ button:disabled {
     height: auto;
   }
   
+  .right-column {
+    height: auto;
+  }
+
   .partner-card, .local-card {
-    min-height: 350px;
+    min-height: 320px;
   }
 
   .partner-controls {
-    position: relative;
-    bottom: auto;
-    right: auto;
-    margin: 12px auto;
     flex-wrap: wrap;
     justify-content: center;
     padding: 12px;
-    max-width: 100%;
   }
 
   .big-btn {
-    padding: 12px 20px;
-    font-size: 15px;
+    padding: 10px 16px;
+    font-size: 14px;
   }
 
   .icon-btn {
-    padding: 12px;
-    font-size: 18px;
+    padding: 10px;
+    font-size: 16px;
   }
 }
