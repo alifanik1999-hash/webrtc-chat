@@ -47,15 +47,15 @@ body {
 }
 
 .profile-pic {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: 2px solid #38bdf8;
   object-fit: cover;
 }
 
 #userName {
-  font-size: 14px;
+  font-size: 15px;
   color: #f3f4f6;
   font-weight: 600;
 }
@@ -72,6 +72,7 @@ button {
   background-color: #3b82f6;
   color: white;
   padding: 10px 18px;
+  font-size: 14px;
 }
 
 #logoutBtn {
@@ -155,9 +156,9 @@ button {
   background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(8px);
   color: #fff;
-  padding: 6px 14px;
+  padding: 8px 16px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -168,7 +169,7 @@ button {
 }
 
 #partnerFlag {
-  font-size: 18px;
+  font-size: 20px;
 }
 
 #partnerName {
@@ -212,10 +213,10 @@ video {
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(6px);
   color: #fff;
-  padding: 12px 18px;
+  padding: 12px 20px;
   border: 1px solid rgba(255, 255, 255, 0.3);
-  font-size: 14px;
-  max-width: 220px;
+  font-size: 15px;
+  max-width: 240px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -234,21 +235,21 @@ video {
   right: 20px;
   display: flex;
   align-items: center;
-  gap: 16px;
-  background: rgba(15, 23, 42, 0.9);
-  backdrop-filter: blur(10px);
-  padding: 14px 22px;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  gap: 18px;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(12px);
+  padding: 18px 26px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.6);
   z-index: 15;
 }
 
 .country-wrapper {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 10px;
+  font-size: 15px;
   color: #cbd5e1;
   font-weight: 600;
 }
@@ -257,27 +258,27 @@ select {
   background-color: #1e293b;
   color: #fff;
   border: 1px solid #475569;
-  padding: 10px 14px;
-  border-radius: 8px;
+  padding: 12px 16px;
+  border-radius: 10px;
   outline: none;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .action-buttons {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
-/* Big OmeTV Style Action Buttons */
+/* 🔥 Jumbo OmeTV Style Action Buttons */
 .big-btn {
-  padding: 16px 32px;
-  font-size: 18px;
+  padding: 20px 42px;
+  font-size: 20px;
   font-weight: 800;
   letter-spacing: 1px;
-  border-radius: 10px;
+  border-radius: 12px;
   color: white;
-  box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.5);
   text-transform: uppercase;
 }
 
@@ -286,7 +287,7 @@ select {
 }
 .start-btn:hover:not(:disabled) { 
   background-color: #059669; 
-  transform: scale(1.03);
+  transform: scale(1.05);
 }
 
 .stop-btn { 
@@ -294,7 +295,7 @@ select {
 }
 .stop-btn:hover:not(:disabled) { 
   background-color: #dc2626; 
-  transform: scale(1.03);
+  transform: scale(1.05);
 }
 
 .next-btn { 
@@ -302,19 +303,19 @@ select {
 }
 .next-btn:hover:not(:disabled) { 
   background-color: #2563eb; 
-  transform: scale(1.03);
+  transform: scale(1.05);
 }
 
 .icon-btn {
-  padding: 16px;
-  font-size: 20px;
+  padding: 20px;
+  font-size: 22px;
   background-color: #374151;
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 .icon-btn:hover:not(:disabled) {
   background-color: #4b5563;
-  transform: scale(1.03);
+  transform: scale(1.05);
 }
 
 button:disabled {
@@ -346,10 +347,16 @@ button:disabled {
     margin: 12px;
     flex-wrap: wrap;
     justify-content: center;
+    padding: 14px;
   }
 
   .big-btn {
-    padding: 12px 20px;
-    font-size: 15px;
+    padding: 14px 24px;
+    font-size: 16px;
+  }
+
+  .icon-btn {
+    padding: 14px;
+    font-size: 18px;
   }
 }
