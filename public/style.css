@@ -115,37 +115,38 @@ button {
   box-sizing: border-box;
 }
 
-/* Common Video Card Base */
+/* Base Card Style */
 .video-card {
   position: relative;
   background-color: #1e293b;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid #334155;
-  display: flex;
-  flex-direction: column;
 }
 
 /* Local Screen (Left Side - Full Height) */
 .local-card {
   flex: 1;
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Right Side Column (Holds Partner Video + Controls) */
+/* Right Side Column Structure */
 .right-column {
   flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   height: 100%;
   gap: 16px;
 }
 
-/* Partner Screen (Takes ALL remaining height above controls) */
+/* Partner Screen (Forced Height Stretch) */
 .partner-card {
-  flex: 1 1 auto;
   width: 100%;
-  min-height: 0; /* Flexbox overflow fix */
+  height: calc(100% - 90px) !important; /* কন্ট্রোল বারের সাইজ বাদ দিয়ে পুরোটা নিবে */
+  flex-grow: 1;
 }
 
 .video-label {
@@ -189,7 +190,7 @@ button {
   color: #38bdf8;
 }
 
-/* Fixed Stream Sizing */
+/* Video Elements */
 video {
   width: 100%;
   height: 100%;
@@ -201,9 +202,7 @@ video {
   transform: scaleX(-1);
 }
 
-/* ==========================================
-   HOVER CONTROLS (Inside Local Screen)
-   ========================================== */
+/* Hover Controls inside Local Screen */
 .overlay-controls {
   position: absolute;
   bottom: 0;
@@ -241,17 +240,17 @@ video {
 }
 
 /* ==========================================
-   OmeTV STYLE CONTROLS (Pinned to Bottom)
+   OmeTV STYLE CONTROLS (Fixed Height at Bottom)
    ========================================== */
 .partner-controls {
-  flex: 0 0 auto; /* Height remains fixed based on content */
+  height: 74px; /* ফিক্সড হাইট */
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   background: rgba(15, 23, 42, 0.92);
   backdrop-filter: blur(12px);
-  padding: 14px 18px;
+  padding: 12px 18px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.6);
@@ -285,9 +284,8 @@ select {
   gap: 10px;
 }
 
-/* Big OmeTV Style Action Buttons */
 .big-btn {
-  padding: 14px 24px;
+  padding: 12px 22px;
   font-size: 16px;
   font-weight: 800;
   letter-spacing: 1px;
@@ -298,42 +296,24 @@ select {
   white-space: nowrap;
 }
 
-.start-btn { 
-  background-color: #10b981; 
-}
-.start-btn:hover:not(:disabled) { 
-  background-color: #059669; 
-  transform: scale(1.03);
-}
+.start-btn { background-color: #10b981; }
+.start-btn:hover:not(:disabled) { background-color: #059669; transform: scale(1.03); }
 
-.stop-btn { 
-  background-color: #ef4444; 
-}
-.stop-btn:hover:not(:disabled) { 
-  background-color: #dc2626; 
-  transform: scale(1.03);
-}
+.stop-btn { background-color: #ef4444; }
+.stop-btn:hover:not(:disabled) { background-color: #dc2626; transform: scale(1.03); }
 
-.next-btn { 
-  background-color: #3b82f6; 
-}
-.next-btn:hover:not(:disabled) { 
-  background-color: #2563eb; 
-  transform: scale(1.03);
-}
+.next-btn { background-color: #3b82f6; }
+.next-btn:hover:not(:disabled) { background-color: #2563eb; transform: scale(1.03); }
 
 .icon-btn {
-  padding: 14px;
+  padding: 12px;
   font-size: 18px;
   background-color: #374151;
   border-radius: 12px;
   white-space: nowrap;
 }
 
-.icon-btn:hover:not(:disabled) {
-  background-color: #4b5563;
-  transform: scale(1.03);
-}
+.icon-btn:hover:not(:disabled) { background-color: #4b5563; transform: scale(1.03); }
 
 button:disabled {
   opacity: 0.35;
@@ -341,40 +321,24 @@ button:disabled {
   transform: none !important;
 }
 
-.hidden {
-  display: none !important;
-}
+.hidden { display: none !important; }
 
-/* ==========================================
-   RESPONSIVE DESIGN FOR MOBILE & SMALL SCREENS
-   ========================================== */
+/* Responsive */
 @media (max-width: 900px) {
   .main-content {
     flex-direction: column;
     height: auto;
   }
-  
   .right-column {
     height: auto;
   }
-
-  .partner-card, .local-card {
-    min-height: 320px;
+  .partner-card {
+    height: 350px !important;
   }
-
   .partner-controls {
+    height: auto;
     flex-wrap: wrap;
     justify-content: center;
     padding: 12px;
-  }
-
-  .big-btn {
-    padding: 10px 16px;
-    font-size: 14px;
-  }
-
-  .icon-btn {
-    padding: 10px;
-    font-size: 16px;
   }
 }
