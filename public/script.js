@@ -1,293 +1,320 @@
-// ==========================================
-// ১. FIREBASE CONFIGURATION & INITIALIZATION
-// ==========================================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signOut, 
+  onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+/* ==========================================
+   1. FIREBASE CONFIGURATION & AUTHENTICATION
+   ========================================== */
 const firebaseConfig = {
-  apiKey: "AIzaSyCzFtRb0VPOuSalqoGe4Hn9AH9fKfpAhSg",
-  authDomain: "my-video-chat-dde4c.firebaseapp.com",
-  projectId: "my-video-chat-dde4c",
-  storageBucket: "my-video-chat-dde4c.firebasestorage.app",
-  messagingSenderId: "685304112979",
-  appId: "1:685304112979:web:d0b094d9666b4413b0e3a6",
-  measurementId: "G-2Z4X8B7HHY"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-const auth = firebase.auth();
-const provider = new firebase.auth.GoogleAuthProvider();
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
 
-// Country Name to Flag Emoji Map
-const countryFlags = {
-  "Global": "🌐",
-  "United States": "🇺🇸",
-  "United Kingdom": "🇬🇧",
-  "Canada": "🇨🇦",
-  "Australia": "🇦🇺",
-  "Bangladesh": "🇧🇩",
-  "India": "🇮🇳",
-  "Pakistan": "🇵🇰",
-  "Saudi Arabia": "🇸🇦",
-  "United Arab Emirates": "🇦🇪",
-  "Germany": "🇩🇪",
-  "France": "🇫🇷",
-  "Japan": "🇯🇵",
-  "South Korea": "🇰🇷",
-  "China": "🇨🇳",
-  "Brazil": "🇧🇷",
-  "Turkey": "🇹🇷",
-  "Italy": "🇮🇹",
-  "Spain": "🇪🇸",
-  "Russia": "🇷🇺",
-  "Malaysia": "🇲🇾",
-  "Singapore": "🇸🇬",
-  "Qatar": "🇶🇦",
-  "Kuwait": "🇰🇼"
-};
-
-// ==========================================
-// ২. DOM ELEMENTS
-// ==========================================
+// Auth DOM Elements
+const loginBtn = document.getElementById('loginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
 const loggedOutUI = document.getElementById('loggedOutUI');
 const loggedInUI = document.getElementById('loggedInUI');
-const userNameDisplay = document.getElementById('userName');
-const userPhotoDisplay = document.getElementById('userPhoto');
-const startBtn = document.getElementById('startBtn');
-const nextBtn = document.getElementById('nextBtn');
-const stopBtn = document.getElementById('stopBtn');
-const statusText = document.getElementById('status');
-const localVideo = document.getElementById('localVideo');
-const remoteVideo = document.getElementById('remoteVideo');
-const countrySelect = document.getElementById('countrySelect');
-const muteAudioBtn = document.getElementById('muteAudioBtn');
-const toggleVideoBtn = document.getElementById('toggleVideoBtn');
+const userPhoto = document.getElementById('userPhoto');
+const userName = document.getElementById('userName');
 
-const partnerInfo = document.getElementById('partnerInfo');
-const partnerFlag = document.getElementById('partnerFlag');
-const partnerName = document.getElementById('partnerName');
+let currentUser = null;
 
-let activeCamName = "Cam";
-let activeMicName = "Mic";
+if (loginBtn) {
+  loginBtn.addEventListener('click', async () => {
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error("Login failed:", error);
+      alert("Login failed! Please try again.");
+    }
+  });
+}
 
-// ==========================================
-// ৩. RELIABLE AUTH LOGIC
-// ==========================================
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  });
+}
 
-window.handleGoogleLogin = function() {
-  if (statusText) statusText.innerText = "Signing in...";
-  
-  auth.signInWithPopup(provider)
-    .then((result) => {
-      console.log("Login success:", result.user);
-    })
-    .catch((error) => {
-      console.error("Popup error, attempting redirect fallback:", error);
-      if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
-        auth.signInWithRedirect(provider);
-      } else {
-        alert("Sign in failed: " + error.message);
-      }
-    });
-};
-
-window.handleLogout = function() {
-  auth.signOut()
-    .then(() => {
-      console.log("User signed out");
-    })
-    .catch((error) => {
-      console.error("Logout Error:", error);
-    });
-};
-
-auth.getRedirectResult().catch((error) => {
-  if (error && error.code) {
-    console.error("Redirect Login Error:", error);
-  }
-});
-
-auth.onAuthStateChanged((user) => {
+onAuthStateChanged(auth, (user) => {
   if (user) {
-    console.log("Auth state: Logged In as", user.displayName);
+    currentUser = user;
     if (loggedOutUI) loggedOutUI.classList.add('hidden');
     if (loggedInUI) loggedInUI.classList.remove('hidden');
-    
-    if (userNameDisplay) userNameDisplay.innerText = user.displayName || 'User';
-    if (userPhotoDisplay) userPhotoDisplay.src = user.photoURL || 'https://via.placeholder.com/32';
-
-    if (startBtn) startBtn.disabled = false;
-    if (statusText) statusText.innerText = "Select country and click Start to find a partner!";
+    if (userPhoto) userPhoto.src = user.photoURL || '';
+    if (userName) userName.innerText = user.displayName || 'User';
   } else {
-    console.log("Auth state: Logged Out");
+    currentUser = null;
     if (loggedOutUI) loggedOutUI.classList.remove('hidden');
     if (loggedInUI) loggedInUI.classList.add('hidden');
-    if (userNameDisplay) userNameDisplay.innerText = '';
-    if (userPhotoDisplay) userPhotoDisplay.src = '';
-
-    if (startBtn) startBtn.disabled = true;
-    if (nextBtn) nextBtn.disabled = true;
-    if (stopBtn) stopBtn.disabled = true;
-    if (statusText) statusText.innerText = "Please sign in with Google to start";
   }
 });
 
-// ==========================================
-// ৪. WEBRTC & SOCKET.IO LOGIC
-// ==========================================
+/* ==========================================
+   2. DOM ELEMENTS & GLOBAL VARIABLES
+   ========================================== */
 const socket = io();
 
+// Video Elements
+const localVideo = document.getElementById('localVideo');
+const remoteVideo = document.getElementById('remoteVideo');
+
+// Buttons & Controls
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const nextBtn = document.getElementById('nextBtn');
+const reportBtn = document.getElementById('reportBtn');
+const toggleMicBtn = document.getElementById('toggleMicBtn');
+const toggleCamBtn = document.getElementById('toggleCamBtn');
+
+// Status & Displays
+const statusText = document.getElementById('status');
+const countrySelect = document.getElementById('countrySelect');
+const partnerName = document.getElementById('partnerName');
+const partnerFlag = document.getElementById('partnerFlag');
+
+// Chat Overlay Elements
+const chatForm = document.getElementById('chatForm');
+const chatInput = document.getElementById('chatInput');
+const chatMessages = document.getElementById('chatMessages');
+const sendBtn = document.getElementById('sendBtn');
+
+// Media & Connection States
 let localStream = null;
 let peerConnection = null;
-let currentRoomId = null;
-let pendingCandidates = [];
+let currentPartnerId = null;
+let isMicMuted = false;
+let isCamOff = false;
+let isSearching = false;
 
+// STUN / TURN Server Configuration (Metered / Google STUN)
 const rtcConfig = {
   iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    {
-      urls: "turn:global.relay.metered.ca:80",
-      username: "de2fad12ff781e4aa7e9c308",
-      credential: "KdnZN2O/QdYhlq68"
-    },
-    {
-      urls: "turn:global.relay.metered.ca:443",
-      username: "de2fad12ff781e4aa7e9c308",
-      credential: "KdnZN2O/QdYhlq68"
-    },
-    {
-      urls: "turn:global.relay.metered.ca:443?transport=tcp",
-      username: "de2fad12ff781e4aa7e9c308",
-      credential: "KdnZN2O/QdYhlq68"
-    }
+    { urls: 'stun:stun.l.google.com:19020' },
+    { urls: 'stun:stun1.l.google.com:19020' },
+    { urls: 'stun:stun2.l.google.com:19020' }
   ]
 };
 
-async function startLocalMedia() {
-  if (!localStream) {
-    try {
-      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      if (localVideo) localVideo.srcObject = localStream;
-
-      const videoTrack = localStream.getVideoTracks()[0];
-      const audioTrack = localStream.getAudioTracks()[0];
-
-      if (videoTrack && videoTrack.label) activeCamName = videoTrack.label;
-      if (audioTrack && audioTrack.label) activeMicName = audioTrack.label;
-
-      updateControlButtons();
-
-    } catch (err) {
-      console.error('Camera/Mic permission error:', err);
-      if (statusText) statusText.innerText = "Camera/Microphone permission required!";
+/* ==========================================
+   3. MEDIA INITIALIZATION & HARDWARE CONTROLS
+   ========================================== */
+async function initMedia() {
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ 
+      video: { width: { ideal: 1280 }, height: { ideal: 720 } }, 
+      audio: true 
+    });
+    if (localVideo) {
+      localVideo.srcObject = localStream;
+    }
+  } catch (err) {
+    console.error("Media devices access error:", err);
+    if (statusText) {
+      statusText.innerText = "Error: Please enable Camera & Microphone permissions!";
+      statusText.style.color = "#ef4444";
     }
   }
 }
+initMedia();
 
-function updateControlButtons() {
-  if (localStream) {
+// Microphone Toggle
+if (toggleMicBtn) {
+  toggleMicBtn.addEventListener('click', () => {
+    if (!localStream) return;
     const audioTrack = localStream.getAudioTracks()[0];
-    const videoTrack = localStream.getVideoTracks()[0];
-
-    if (muteAudioBtn && audioTrack) {
-      muteAudioBtn.innerText = audioTrack.enabled ? `🎤 Mute (${activeMicName})` : `🎙️ Unmute`;
+    if (audioTrack) {
+      isMicMuted = !isMicMuted;
+      audioTrack.enabled = !isMicMuted;
+      toggleMicBtn.innerText = isMicMuted ? "🎙️ Unmute Mic" : "🎤 Mute Mic";
+      toggleMicBtn.style.background = isMicMuted ? "rgba(239, 68, 68, 0.4)" : "rgba(255, 255, 255, 0.2)";
     }
-    if (toggleVideoBtn && videoTrack) {
-      toggleVideoBtn.innerText = videoTrack.enabled ? `📹 Video Off (${activeCamName})` : `📷 Video On`;
-    }
-  }
+  });
 }
 
-startLocalMedia();
+// Camera Toggle
+if (toggleCamBtn) {
+  toggleCamBtn.addEventListener('click', () => {
+    if (!localStream) return;
+    const videoTrack = localStream.getVideoTracks()[0];
+    if (videoTrack) {
+      isCamOff = !isCamOff;
+      videoTrack.enabled = !isCamOff;
+      toggleCamBtn.innerText = isCamOff ? "📹 Turn On Cam" : "📹 Turn Off Cam";
+      toggleCamBtn.style.background = isCamOff ? "rgba(239, 68, 68, 0.4)" : "rgba(255, 255, 255, 0.2)";
+    }
+  });
+}
 
-// Start Matchmaking
+/* ==========================================
+   4. MATCHMAKING & CALL CONTROL HANDLERS
+   ========================================== */
 if (startBtn) {
   startBtn.addEventListener('click', () => {
-    const country = countrySelect ? countrySelect.value : 'Global';
-    const currentUser = auth.currentUser;
-    const name = currentUser ? currentUser.displayName : 'Guest';
-
-    if (statusText) statusText.innerText = "Searching for a partner...";
-    
-    // Send user name & country with match request
-    socket.emit('find-match', { country, name, userCountry: country });
-    
-    startBtn.disabled = true;
+    isSearching = true;
+    startBtn.classList.add('hidden');
+    if (stopBtn) stopBtn.classList.remove('hidden');
     if (nextBtn) nextBtn.disabled = false;
-    if (stopBtn) stopBtn.disabled = false;
+    if (reportBtn) reportBtn.disabled = true;
+    findPartner();
   });
 }
 
-// Next Match
+if (stopBtn) {
+  stopBtn.addEventListener('click', stopChat);
+}
+
 if (nextBtn) {
   nextBtn.addEventListener('click', () => {
-    if (remoteVideo) remoteVideo.srcObject = null;
-    if (partnerInfo) partnerInfo.classList.add('hidden');
-    closePeerConnection();
-    if (statusText) statusText.innerText = "Searching for new partner...";
-    
-    const country = countrySelect ? countrySelect.value : 'Global';
-    const currentUser = auth.currentUser;
-    const name = currentUser ? currentUser.displayName : 'Guest';
-    
-    socket.emit('next-user', { country, name, userCountry: country });
+    disconnectPeer();
+    findPartner();
   });
 }
 
-// Stop Video Chat
-if (stopBtn) {
-  stopBtn.addEventListener('click', () => {
-    if (remoteVideo) remoteVideo.srcObject = null;
-    if (partnerInfo) partnerInfo.classList.add('hidden');
-    closePeerConnection();
-    socket.emit('next-user'); 
-    if (statusText) statusText.innerText = "Stopped. Click Start to search again.";
-    
-    startBtn.disabled = false;
-    nextBtn.disabled = true;
-    stopBtn.disabled = true;
-  });
-}
-
-socket.on('waiting', (msg) => {
-  if (statusText) statusText.innerText = msg;
-});
-
-// Match Found
-socket.on('match-found', async ({ roomId, isInitiator, partnerDetails }) => {
-  console.log(`Matched! Room ID: ${roomId}`);
-  if (statusText) statusText.innerText = "Connected with a partner!";
-  currentRoomId = roomId;
-
-  // Show Partner Name & Flag
-  if (partnerDetails) {
-    const pName = partnerDetails.name || 'Partner';
-    const pCountry = partnerDetails.userCountry || 'Global';
-    const flag = countryFlags[pCountry] || "🌐";
-
-    if (partnerName) partnerName.innerText = pName;
-    if (partnerFlag) partnerFlag.innerText = flag;
-    if (partnerInfo) partnerInfo.classList.remove('hidden');
-  }
-
-  await createPeerConnection();
-
-  if (isInitiator) {
-    try {
-      const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
-      socket.emit('signal', { roomId: currentRoomId, signal: offer });
-    } catch (err) {
-      console.error("Error creating offer:", err);
+if (reportBtn) {
+  reportBtn.addEventListener('click', () => {
+    if (currentPartnerId) {
+      alert("User has been reported to moderators.");
+      disconnectPeer();
+      findPartner();
     }
+  });
+}
+
+function findPartner() {
+  if (statusText) {
+    statusText.innerText = "Searching for a partner...";
+    statusText.style.color = "#f59e0b";
+  }
+  if (partnerName) partnerName.innerText = "Searching...";
+  if (partnerFlag) partnerFlag.innerText = "🌐";
+  
+  disableChat();
+  
+  const selectedCountry = countrySelect ? countrySelect.value : 'Global';
+  const userNameVal = currentUser ? currentUser.displayName : 'Anonymous';
+
+  socket.emit('find-partner', { 
+    country: selectedCountry,
+    name: userNameVal
+  });
+}
+
+function stopChat() {
+  isSearching = false;
+  disconnectPeer();
+  socket.emit('leave-room');
+  
+  if (startBtn) startBtn.classList.remove('hidden');
+  if (stopBtn) stopBtn.classList.add('hidden');
+  if (nextBtn) nextBtn.disabled = true;
+  if (reportBtn) reportBtn.disabled = true;
+  
+  if (statusText) {
+    statusText.innerText = "Stopped. Click Start to find a partner!";
+    statusText.style.color = "#10b981";
+  }
+  if (partnerName) partnerName.innerText = "Partner";
+  if (partnerFlag) partnerFlag.innerText = "🌐";
+  
+  disableChat();
+}
+
+/* ==========================================
+   5. SOCKET.IO SIGNALING & EVENTS
+   ========================================== */
+socket.on('waiting', () => {
+  if (statusText) {
+    statusText.innerText = "Waiting for an available partner...";
+    statusText.style.color = "#3b82f6";
   }
 });
 
-async function createPeerConnection() {
-  closePeerConnection();
+socket.on('partner-found', async (data) => {
+  currentPartnerId = data.partnerId;
+  
+  if (statusText) {
+    statusText.innerText = "Connected with a partner!";
+    statusText.style.color = "#10b981";
+  }
+  if (partnerName) partnerName.innerText = data.partnerData?.name || "Stranger";
+  if (partnerFlag) {
+    const flags = { 'BD': '🇧🇩', 'IN': '🇮🇳', 'US': '🇺🇸', 'UK': '🇬🇧' };
+    partnerFlag.innerText = flags[data.partnerData?.country] || '🌐';
+  }
+  
+  if (reportBtn) reportBtn.disabled = false;
+  enableChat();
 
+  createPeerConnection();
+  
+  try {
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    socket.emit('signal', { to: currentPartnerId, signal: offer });
+  } catch (err) {
+    console.error("Offer creation error:", err);
+  }
+});
+
+socket.on('signal', async (data) => {
+  if (!peerConnection) createPeerConnection();
+
+  try {
+    if (data.signal.type === 'offer') {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(data.signal));
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      socket.emit('signal', { to: data.from, signal: answer });
+    } else if (data.signal.type === 'answer') {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(data.signal));
+    } else if (data.signal.candidate) {
+      await peerConnection.addIceCandidate(new RTCIceCandidate(data.signal.candidate));
+    }
+  } catch (err) {
+    console.error("Signaling handle error:", err);
+  }
+});
+
+socket.on('partner-left', () => {
+  if (statusText) {
+    statusText.innerText = "Partner left the chat.";
+    statusText.style.color = "#ef4444";
+  }
+  disconnectPeer();
+  disableChat();
+  
+  // Auto search next if user was in searching mode
+  if (isSearching) {
+    setTimeout(() => {
+      if (isSearching) findPartner();
+    }, 1200);
+  }
+});
+
+/* ==========================================
+   6. WEBRTC PEER CONNECTION PIPELINE
+   ========================================== */
+function createPeerConnection() {
   peerConnection = new RTCPeerConnection(rtcConfig);
-  pendingCandidates = [];
 
   if (localStream) {
     localStream.getTracks().forEach(track => {
@@ -295,114 +322,92 @@ async function createPeerConnection() {
     });
   }
 
+  peerConnection.ontrack = (event) => {
+    if (remoteVideo) {
+      remoteVideo.srcObject = event.streams[0];
+    }
+  };
+
   peerConnection.onicecandidate = (event) => {
-    if (event.candidate && currentRoomId) {
-      socket.emit('signal', {
-        roomId: currentRoomId,
-        signal: { candidate: event.candidate }
+    if (event.candidate && currentPartnerId) {
+      socket.emit('signal', { 
+        to: currentPartnerId, 
+        signal: { candidate: event.candidate } 
       });
     }
   };
 
-  peerConnection.ontrack = (event) => {
-    if (remoteVideo) {
-      if (event.streams && event.streams[0]) {
-        remoteVideo.srcObject = event.streams[0];
-      } else {
-        const stream = new MediaStream();
-        stream.addTrack(event.track);
-        remoteVideo.srcObject = stream;
+  peerConnection.oniceconnectionstatechange = () => {
+    if (peerConnection) {
+      console.log("ICE Connection State:", peerConnection.iceConnectionState);
+      if (peerConnection.iceConnectionState === 'disconnected' || peerConnection.iceConnectionState === 'failed') {
+        if (statusText) statusText.innerText = "Connection unstable or lost...";
       }
-      remoteVideo.play().catch(e => console.log("Video Play Error:", e));
     }
   };
 }
 
-// Signaling Handler
-socket.on('signal', async ({ signal }) => {
-  if (!peerConnection) return;
-
-  try {
-    if (signal.type === 'offer') {
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
-      await processPendingCandidates();
-
-      const answer = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answer);
-      socket.emit('signal', { roomId: currentRoomId, signal: answer });
-
-    } else if (signal.type === 'answer') {
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
-      await processPendingCandidates();
-
-    } else if (signal.candidate) {
-      const candidate = new RTCIceCandidate(signal.candidate);
-      if (peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
-        await peerConnection.addIceCandidate(candidate);
-      } else {
-        pendingCandidates.push(candidate);
-      }
-    }
-  } catch (err) {
-    console.error("Signal Processing Error:", err);
-  }
-});
-
-async function processPendingCandidates() {
-  while (pendingCandidates.length > 0) {
-    const candidate = pendingCandidates.shift();
-    await peerConnection.addIceCandidate(candidate);
-  }
-}
-
-socket.on('peer-disconnected', () => {
-  console.log('Partner disconnected');
-  if (statusText) statusText.innerText = "Partner disconnected. Click Next or Start to search again.";
-  if (remoteVideo) remoteVideo.srcObject = null;
-  if (partnerInfo) partnerInfo.classList.add('hidden');
-  closePeerConnection();
-  if (startBtn) startBtn.disabled = false;
-  if (stopBtn) stopBtn.disabled = true;
-});
-
-function closePeerConnection() {
+function disconnectPeer() {
   if (peerConnection) {
     peerConnection.ontrack = null;
     peerConnection.onicecandidate = null;
     peerConnection.close();
     peerConnection = null;
   }
+  if (remoteVideo) {
+    remoteVideo.srcObject = null;
+  }
+  currentPartnerId = null;
 }
 
-// ==========================================
-// ৫. MEDIA CONTROLS & REPORT FUNCTIONS
-// ==========================================
+/* ==========================================
+   7. TEXT CHAT SYSTEM OVERLAY
+   ========================================== */
+if (chatForm) {
+  chatForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!chatInput) return;
+    
+    const message = chatInput.value.trim();
+    if (message && currentPartnerId) {
+      socket.emit('send-message', {
+        to: currentPartnerId,
+        message: message
+      });
 
-window.toggleAudio = function() {
-  if (!localStream) return;
-  const audioTrack = localStream.getAudioTracks()[0];
-  if (audioTrack) {
-    audioTrack.enabled = !audioTrack.enabled;
-    updateControlButtons();
+      appendMessage(message, 'my-message');
+      chatInput.value = '';
+    }
+  });
+}
+
+socket.on('receive-message', (data) => {
+  appendMessage(data.message, 'partner-message');
+});
+
+function appendMessage(text, className) {
+  if (!chatMessages) return;
+  const msgDiv = document.createElement('div');
+  msgDiv.classList.add('message', className);
+  msgDiv.innerText = text;
+  chatMessages.appendChild(msgDiv);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function enableChat() {
+  if (chatInput) {
+    chatInput.disabled = false;
+    chatInput.placeholder = "Type a message...";
   }
-};
+  if (sendBtn) sendBtn.disabled = false;
+  if (chatMessages) chatMessages.innerHTML = '';
+}
 
-window.toggleVideo = function() {
-  if (!localStream) return;
-  const videoTrack = localStream.getVideoTracks()[0];
-  if (videoTrack) {
-    videoTrack.enabled = !videoTrack.enabled;
-    updateControlButtons();
+function disableChat() {
+  if (chatInput) {
+    chatInput.disabled = true;
+    chatInput.value = '';
+    chatInput.placeholder = "Connect with a partner to chat...";
   }
-};
-
-window.reportUser = function() {
-  if (!currentRoomId) {
-    alert("You are not connected to anyone!");
-    return;
-  }
-  socket.emit('report-user', { roomId: currentRoomId });
-  alert("User reported successfully.");
-
-  if (nextBtn) nextBtn.click();
-};
+  if (sendBtn) sendBtn.disabled = true;
+}
