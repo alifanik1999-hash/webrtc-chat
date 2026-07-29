@@ -17,7 +17,7 @@ body {
 }
 
 /* ==========================================
-   TOP BAR & AUTHENTICATION (Top Right)
+   TOP BAR & AUTHENTICATION
    ========================================== */
 .top-bar {
   display: flex;
@@ -101,7 +101,7 @@ button {
 }
 
 /* ==========================================
-   MAIN CONTENT & LAYOUT STRUCTURE
+   MAIN CONTENT & FIXED VIDEO CARDS
    ========================================== */
 .main-content {
   display: flex;
@@ -115,7 +115,7 @@ button {
   box-sizing: border-box;
 }
 
-/* Common Video Box Settings */
+/* Common Video Card Base */
 .video-card {
   position: relative;
   background-color: #1e293b;
@@ -126,7 +126,7 @@ button {
   flex-direction: column;
 }
 
-/* Local Screen (Left Side - Stretches Full Height) */
+/* Local Screen (Left Side - Full Height) */
 .local-card {
   flex: 1;
   height: 100%;
@@ -137,20 +137,15 @@ button {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 16px;
   height: 100%;
+  gap: 16px;
 }
 
-/* Partner Screen (Expands to fill space right above controls) */
+/* Partner Screen (Takes ALL remaining height above controls) */
 .partner-card {
-  flex: 1;
+  flex: 1 1 auto;
   width: 100%;
-  position: relative;
-  background-color: #1e293b;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid #334155;
+  min-height: 0; /* Flexbox overflow fix */
 }
 
 .video-label {
@@ -194,7 +189,7 @@ button {
   color: #38bdf8;
 }
 
-/* Video Frame Sizing */
+/* Fixed Stream Sizing */
 video {
   width: 100%;
   height: 100%;
@@ -246,9 +241,10 @@ video {
 }
 
 /* ==========================================
-   OmeTV STYLE CONTROLS (Aligned to Bottom)
+   OmeTV STYLE CONTROLS (Pinned to Bottom)
    ========================================== */
 .partner-controls {
+  flex: 0 0 auto; /* Height remains fixed based on content */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -260,7 +256,6 @@ video {
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.6);
   width: 100%;
-  margin-top: auto;
 }
 
 .country-wrapper {
@@ -290,7 +285,7 @@ select {
   gap: 10px;
 }
 
-/* OmeTV Style Action Buttons */
+/* Big OmeTV Style Action Buttons */
 .big-btn {
   padding: 14px 24px;
   font-size: 16px;
