@@ -16,7 +16,7 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const provider = new firebase.auth.GoogleAuthProvider();
 
-// Global Auth Handlers (for HTML onclick or direct triggers)
+// Global Auth Handlers
 window.handleGoogleLogin = async function() {
   console.log("Attempting Login...");
   try {
@@ -52,7 +52,7 @@ let peerConnection = null;
 let currentRoomId = null;
 let pendingCandidates = [];
 
-// FIXED: Optimised Ice Servers (Added UDP & TCP support without trailing spaces)
+// Optimised Ice Servers
 const rtcConfig = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -64,7 +64,7 @@ const rtcConfig = {
         "turn:a.relay.metered.ca:443?transport=tcp"
       ],
       username: "de2fad12ff781e4aa7e9c308",
-      credential: "7_ESuH77TI6_P905Po9vR0m536wKH21_i47pKc8JYYFbMvu1" // ⚠️ নিশ্চিত করুন এখানে সঠিক Secret Key বসিয়েছেন
+      credential: "7_ESuH77TI6_P905Po9vR0m536wKH21_i47pKc8JYYFbMvu1"
     }
   ]
 };
@@ -77,7 +77,7 @@ async function setupMedia() {
     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     if (localVideo) {
       localVideo.srcObject = localStream;
-      localVideo.muted = true; // মিউট করে না রাখলে ব্রাউজার নিজের অডিও ইকো করতে পারে
+      localVideo.muted = true; // নিজের অডিও মিউট করা
     }
   } catch (err) {
     console.error('Camera/Mic Error:', err);
@@ -105,15 +105,15 @@ document.addEventListener('DOMContentLoaded', () => {
   if (loginBtn) loginBtn.onclick = window.handleGoogleLogin;
   if (logoutBtn) logoutBtn.onclick = window.handleLogout;
 
-  // 4. Monitor Auth State Changes (UI & Button Controls)
+  // Monitor Auth State Changes
   auth.onAuthStateChanged((user) => {
     if (user) {
       console.log("User logged in:", user.displayName);
-     
+      
       if (loggedOutUI) loggedOutUI.classList.add('hidden');
       if (loggedInUI) loggedInUI.classList.remove('hidden');
       if (userName) userName.innerText = `Logged in as: ${user.displayName}`;
-     
+      
       if (startBtn) {
         startBtn.disabled = false;
         startBtn.style.cursor = "pointer";
@@ -123,10 +123,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } else {
       console.log("No user logged in");
-     
+      
       if (loggedOutUI) loggedOutUI.classList.remove('hidden');
       if (loggedInUI) loggedInUI.classList.add('hidden');
-     
+      
       if (startBtn) {
         startBtn.disabled = true;
         startBtn.style.cursor = "not-allowed";
@@ -227,31 +227,40 @@ async function processPendingCandidates() {
   pendingCandidates = [];
 }
 
+// FIXED: Enhanced Peer Connection Setup
 function createPeerConnection() {
   const remoteVideo = document.getElementById('remoteVideo');
   closePeerConnection();
 
   peerConnection = new RTCPeerConnection(rtcConfig);
 
+  // Local tracks যুক্ত করা
   if (localStream) {
     localStream.getTracks().forEach(track => {
       peerConnection.addTrack(track, localStream);
     });
   }
 
-  // FIXED: Auto-play & Stream Attachment Issue
+  // FIXED: Remote Video and Audio Stream Attachment
   peerConnection.ontrack = (event) => {
-    if (remoteVideo && event.streams && event.streams[0]) {
-      remoteVideo.srcObject = event.streams[0];
-      
-      // বাধ্যতামূলকভাবে ভিডিও প্লে করার চেষ্টা (Chrome/Safari এর অটো-প্লে পলিসি বাইপাস করার জন্য)
+    if (remoteVideo) {
+      if (event.streams && event.streams[0]) {
+        remoteVideo.srcObject = event.streams[0];
+      } else {
+        if (!remoteVideo.srcObject) {
+          remoteVideo.srcObject = new MediaStream();
+        }
+        remoteVideo.srcObject.addTrack(event.track);
+      }
+
+      // অটো-প্লে ব্লক বাইপাস করার ট্রাই
       remoteVideo.play().catch(e => {
-        console.warn("Video Play Failed, retrying with play():", e);
+        console.warn("Autoplay blocked/failed, attempting play again:", e);
       });
     }
   };
 
-  // FIXED: Ice Candidate Serialization
+  // ICE Candidates আদান-প্রদান
   peerConnection.onicecandidate = (event) => {
     if (event.candidate && currentRoomId) {
       socket.emit('signal', { 
@@ -262,6 +271,7 @@ function createPeerConnection() {
   };
 }
 
+// FIXED: Clean Connection Closure
 function closePeerConnection() {
   const remoteVideo = document.getElementById('remoteVideo');
   if (peerConnection) {
@@ -271,6 +281,7 @@ function closePeerConnection() {
     peerConnection = null;
   }
   if (remoteVideo) {
+    remoteVideo.pause();
     remoteVideo.srcObject = null;
   }
   currentRoomId = null;
