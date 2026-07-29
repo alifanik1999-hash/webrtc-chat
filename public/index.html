@@ -1,23 +1,27 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>1-on-1 Video Chat</title>
   <link rel="stylesheet" href="style.css">
+  <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 
-  <!-- Header Section -->
+  <!-- Top Navigation Bar -->
   <header class="navbar">
     <div class="logo">1-on-1 Video Chat</div>
     <div class="auth-box">
       <div id="loggedOutUI">
-        <button id="loginBtn" class="btn btn-login">Login with Google</button>
+        <button id="loginBtn" class="btn btn-login">
+          <svg width="18" height="18" viewBox="0 0 24 24" style="margin-right:8px; vertical-align:middle;"><path fill="#ffffff" d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.761H12.545z"/></svg>
+          Login with Google
+        </button>
       </div>
       <div id="loggedInUI" class="user-profile hidden">
-        <img id="userPhoto" src="" alt="User Avatar" class="user-avatar" />
-        <span id="userName" class="user-name"></span>
+        <img id="userPhoto" class="user-avatar" src="" alt="User">
+        <span id="userName" class="user-name">User</span>
         <button id="logoutBtn" class="btn btn-logout">Logout</button>
       </div>
     </div>
@@ -25,40 +29,40 @@
 
   <!-- Status Bar -->
   <div class="status-bar">
-    <p id="status">Select country and click Start to find a partner!</p>
+    <span id="status">Click START to find a partner</span>
   </div>
 
-  <!-- Main Video Container Layout -->
+  <!-- Video Grid Container -->
   <main class="video-container">
-    
-    <!-- Local User Video Panel -->
-    <div class="video-card my-card">
-      <span class="badge">You</span>
+    <!-- Local User Video -->
+    <div class="video-card">
+      <div class="badge">You</div>
       <video id="localVideo" autoplay playsinline muted></video>
       <div class="overlay-controls">
-        <button id="toggleMicBtn" class="btn btn-control">🎤 Mute Mic</button>
-        <button id="toggleCamBtn" class="btn btn-control">📹 Turn Off Cam</button>
+        <button id="toggleMicBtn" class="btn-control">🎤 Mute Mic</button>
+        <button id="toggleCamBtn" class="btn-control">📹 Turn Off Cam</button>
       </div>
     </div>
 
-    <!-- Remote Partner Video & Chat Panel -->
-    <div class="video-card partner-card">
-      <span class="badge partner-badge"><span id="partnerFlag">🌐</span> <span id="partnerName">Partner</span></span>
+    <!-- Partner Video & Integrated Chat -->
+    <div class="video-card">
+      <div class="badge">
+        <span id="partnerFlag">🌐</span> <span id="partnerName">Partner</span>
+      </div>
       <video id="remoteVideo" autoplay playsinline></video>
       
       <!-- Text Chat Overlay -->
       <div class="chat-overlay">
         <div id="chatMessages" class="chat-messages"></div>
         <form id="chatForm" class="chat-form">
-          <input type="text" id="chatInput" placeholder="Connect with a partner to chat..." disabled autocomplete="off" />
+          <input type="text" id="chatInput" placeholder="Connect with a partner to chat..." disabled autocomplete="off">
           <button type="submit" id="sendBtn" class="btn btn-send" disabled>Send</button>
         </form>
       </div>
     </div>
-
   </main>
 
-  <!-- Control Panel & Matchmaking -->
+  <!-- Bottom Action Panel -->
   <footer class="controls-panel">
     <div class="selector-group">
       <label for="countrySelect">Country:</label>
@@ -71,16 +75,15 @@
       </select>
     </div>
 
+    <!-- Big Action Buttons in Order: Report | Start | Stop | Next -->
     <div class="action-buttons">
-      <button id="reportBtn" class="btn btn-report" disabled>🚩</button>
-      <button id="startBtn" class="btn btn-primary">START</button>
-      <button id="stopBtn" class="btn btn-danger hidden">STOP</button>
-      <button id="nextBtn" class="btn btn-secondary" disabled>NEXT ➔</button>
+      <button id="reportBtn" class="btn btn-report btn-lg" disabled title="Report User">🚩 Report</button>
+      <button id="startBtn" class="btn btn-primary btn-lg">▶ START</button>
+      <button id="stopBtn" class="btn btn-danger btn-lg hidden">⏹ STOP</button>
+      <button id="nextBtn" class="btn btn-secondary btn-lg" disabled>NEXT ➔</button>
     </div>
   </footer>
 
-  <!-- Socket.io & App Module Scripts -->
-  <script src="/socket.io/socket.io.js"></script>
   <script type="module" src="script.js"></script>
 </body>
 </html>

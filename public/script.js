@@ -1,3 +1,80 @@
+/* ==========================================
+   1. FIREBASE AUTHENTICATION SETUP
+   ========================================== */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signOut, 
+  onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+// Your Firebase Config (নিজের ফায়ারবেজ কনফিগ বসালে সম্পূর্ণ কাজ করবে)
+const firebaseConfig = {
+  apiKey: "AIzaSyDummyKeyReplaceWithYourOwnIfHave",
+  authDomain: "talkwithworld.firebaseapp.com",
+  projectId: "talkwithworld",
+  storageBucket: "talkwithworld.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef"
+};
+
+let auth = null;
+let provider = new GoogleAuthProvider();
+
+try {
+  const app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+} catch (e) {
+  console.warn("Firebase Init Warning:", e);
+}
+
+const loginBtn = document.getElementById('loginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+const loggedOutUI = document.getElementById('loggedOutUI');
+const loggedInUI = document.getElementById('loggedInUI');
+const userPhoto = document.getElementById('userPhoto');
+const userName = document.getElementById('userName');
+
+let currentUser = null;
+
+if (loginBtn && auth) {
+  loginBtn.addEventListener('click', async () => {
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error("Login Error:", error);
+      alert("Google Sign-In popup closed or blocked. Please allow popups!");
+    }
+  });
+}
+
+if (logoutBtn && auth) {
+  logoutBtn.addEventListener('click', async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Logout Error:", error);
+    }
+  });
+}
+
+if (auth) {
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      currentUser = user;
+      if (loggedOutUI) loggedOutUI.classList.add('hidden');
+      if (loggedInUI) loggedInUI.classList.remove('hidden');
+      if (userPhoto) userPhoto.src = user.photoURL || '';
+      if (userName) userName.innerText = user.displayName || 'User';
+    } else {
+      currentUser = null;
+      if (loggedOutUI) loggedOutUI.classList.remove('hidden');
+      if (loggedInUI) loggedInUI.classList.add('hidden');
+    }
+  });
+}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { 
   getAuth, 
