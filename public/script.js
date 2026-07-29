@@ -17,6 +17,34 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const provider = new firebase.auth.GoogleAuthProvider();
 
+// Country Name to Flag Emoji Map
+const countryFlags = {
+  "Global": "🌐",
+  "United States": "🇺🇸",
+  "United Kingdom": "🇬🇧",
+  "Canada": "🇨🇦",
+  "Australia": "🇦🇺",
+  "Bangladesh": "🇧🇩",
+  "India": "🇮🇳",
+  "Pakistan": "🇵🇰",
+  "Saudi Arabia": "🇸🇦",
+  "United Arab Emirates": "🇦🇪",
+  "Germany": "🇩🇪",
+  "France": "🇫🇷",
+  "Japan": "🇯🇵",
+  "South Korea": "🇰🇷",
+  "China": "🇨🇳",
+  "Brazil": "🇧🇷",
+  "Turkey": "🇹🇷",
+  "Italy": "🇮🇹",
+  "Spain": "🇪🇸",
+  "Russia": "🇷🇺",
+  "Malaysia": "🇲🇾",
+  "Singapore": "🇸🇬",
+  "Qatar": "🇶🇦",
+  "Kuwait": "🇰🇼"
+};
+
 // ==========================================
 // ২. DOM ELEMENTS
 // ==========================================
@@ -33,6 +61,10 @@ const remoteVideo = document.getElementById('remoteVideo');
 const countrySelect = document.getElementById('countrySelect');
 const muteAudioBtn = document.getElementById('muteAudioBtn');
 const toggleVideoBtn = document.getElementById('toggleVideoBtn');
+
+const partnerInfo = document.getElementById('partnerInfo');
+const partnerFlag = document.getElementById('partnerFlag');
+const partnerName = document.getElementById('partnerName');
 
 let activeCamName = "Cam";
 let activeMicName = "Mic";
@@ -172,9 +204,14 @@ startLocalMedia();
 if (startBtn) {
   startBtn.addEventListener('click', () => {
     const country = countrySelect ? countrySelect.value : 'Global';
+    const currentUser = auth.currentUser;
+    const name = currentUser ? currentUser.displayName : 'Guest';
 
     if (statusText) statusText.innerText = "Searching for a partner...";
-    socket.emit('find-match', { country });
+    
+    // Send user name & country with match request
+    socket.emit('find-match', { country, name, userCountry: country });
+    
     startBtn.disabled = true;
     if (nextBtn) nextBtn.disabled = false;
     if (stopBtn) stopBtn.disabled = false;
@@ -185,9 +222,15 @@ if (startBtn) {
 if (nextBtn) {
   nextBtn.addEventListener('click', () => {
     if (remoteVideo) remoteVideo.srcObject = null;
+    if (partnerInfo) partnerInfo.classList.add('hidden');
     closePeerConnection();
     if (statusText) statusText.innerText = "Searching for new partner...";
-    socket.emit('next-user');
+    
+    const country = countrySelect ? countrySelect.value : 'Global';
+    const currentUser = auth.currentUser;
+    const name = currentUser ? currentUser.displayName : 'Guest';
+    
+    socket.emit('next-user', { country, name, userCountry: country });
   });
 }
 
@@ -195,6 +238,7 @@ if (nextBtn) {
 if (stopBtn) {
   stopBtn.addEventListener('click', () => {
     if (remoteVideo) remoteVideo.srcObject = null;
+    if (partnerInfo) partnerInfo.classList.add('hidden');
     closePeerConnection();
     socket.emit('next-user'); 
     if (statusText) statusText.innerText = "Stopped. Click Start to search again.";
@@ -210,10 +254,21 @@ socket.on('waiting', (msg) => {
 });
 
 // Match Found
-socket.on('match-found', async ({ roomId, isInitiator }) => {
+socket.on('match-found', async ({ roomId, isInitiator, partnerDetails }) => {
   console.log(`Matched! Room ID: ${roomId}`);
   if (statusText) statusText.innerText = "Connected with a partner!";
   currentRoomId = roomId;
+
+  // Show Partner Name & Flag
+  if (partnerDetails) {
+    const pName = partnerDetails.name || 'Partner';
+    const pCountry = partnerDetails.userCountry || 'Global';
+    const flag = countryFlags[pCountry] || "🌐";
+
+    if (partnerName) partnerName.innerText = pName;
+    if (partnerFlag) partnerFlag.innerText = flag;
+    if (partnerInfo) partnerInfo.classList.remove('hidden');
+  }
 
   await createPeerConnection();
 
@@ -304,6 +359,7 @@ socket.on('peer-disconnected', () => {
   console.log('Partner disconnected');
   if (statusText) statusText.innerText = "Partner disconnected. Click Next or Start to search again.";
   if (remoteVideo) remoteVideo.srcObject = null;
+  if (partnerInfo) partnerInfo.classList.add('hidden');
   closePeerConnection();
   if (startBtn) startBtn.disabled = false;
   if (stopBtn) stopBtn.disabled = true;

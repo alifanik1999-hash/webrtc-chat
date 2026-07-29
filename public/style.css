@@ -147,6 +147,34 @@ button {
   z-index: 10;
 }
 
+/* Partner Info Badge Top Left */
+.partner-info-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  z-index: 10;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+#partnerFlag {
+  font-size: 18px;
+}
+
+#partnerName {
+  color: #38bdf8;
+}
+
 video {
   width: 100%;
   height: 100%;
@@ -241,7 +269,7 @@ select {
   gap: 12px;
 }
 
-/* 🔥 Extra Big OmeTV Style Action Buttons */
+/* Big OmeTV Style Action Buttons */
 .big-btn {
   padding: 16px 32px;
   font-size: 18px;
