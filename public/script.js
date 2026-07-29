@@ -41,6 +41,10 @@ const remoteVideo = document.getElementById('remoteVideo');
 const languageSelect = document.getElementById('languageSelect');
 const countrySelect = document.getElementById('countrySelect');
 
+// Mic & Camera Buttons (HTML এর সাথে মিল রেখে)
+const muteMicBtn = document.getElementById('muteMicBtn') || document.querySelector('button:contains("Mute")') || document.querySelectorAll('.video-box button')[0];
+const toggleCamBtn = document.getElementById('toggleCamBtn') || document.querySelectorAll('.video-box button')[1];
+
 /* ==========================================
    ৩. FIREBASE AUTHENTICATION LOGIC
    ========================================== */
@@ -93,14 +97,11 @@ let peerConnection = null;
 let currentRoomId = null;
 let pendingCandidates = [];
 
-// Metered TURN + Google STUN Configurations
+// Google STUN + Metered TURN Server Configurations
 const rtcConfig = {
   iceServers: [
-    // Google STUN Servers
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-    
-    // Metered TURN Servers
     {
       urls: "turn:talk-with-world.metered.live:80",
       username: "d2d148e6efef2cfd01e1471d",
@@ -128,8 +129,14 @@ async function startLocalMedia() {
       });
       if (localVideo) {
         localVideo.srcObject = localStream;
-        localVideo.muted = true;
-        await localVideo.play().catch(e => console.log("Autoplay blocked:", e));
+        localVideo.muted = true; // Local Feedback Mute
+        
+        const playPromise = localVideo.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.log("Autoplay handled:", error);
+          });
+        }
       }
     } catch (err) {
       console.error('Camera/Mic error:', err);
@@ -141,6 +148,40 @@ async function startLocalMedia() {
 document.addEventListener('DOMContentLoaded', startLocalMedia);
 startLocalMedia();
 
+/* ==========================================
+   ৫. MIC & CAMERA CONTROLS (NEW)
+   ========================================== */
+// Mute / Unmute Microphone
+if (muteMicBtn) {
+  muteMicBtn.addEventListener('click', () => {
+    if (localStream) {
+      const audioTrack = localStream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        muteMicBtn.innerText = audioTrack.enabled ? "Mute Mic" : "Unmute Mic";
+        muteMicBtn.style.backgroundColor = audioTrack.enabled ? "" : "#dc3545";
+      }
+    }
+  });
+}
+
+// Turn On / Off Camera
+if (toggleCamBtn) {
+  toggleCamBtn.addEventListener('click', () => {
+    if (localStream) {
+      const videoTrack = localStream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        toggleCamBtn.innerText = videoTrack.enabled ? "Turn Off Cam" : "Turn On Cam";
+        toggleCamBtn.style.backgroundColor = videoTrack.enabled ? "" : "#dc3545";
+      }
+    }
+  });
+}
+
+/* ==========================================
+   ৬. MATCHMAKING & SIGNALING
+   ========================================== */
 if (startBtn) {
   startBtn.addEventListener('click', async () => {
     await startLocalMedia();
