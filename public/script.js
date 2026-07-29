@@ -33,39 +33,27 @@ const languageSelect = document.getElementById('languageSelect');
 const countrySelect = document.getElementById('countrySelect');
 
 // ==========================================
-// ৩. CROSS-DEVICE HYBRID AUTH LOGIC
+// ৩. RELIABLE AUTH LOGIC
 // ==========================================
 
-// মোবাইল এবং ডেক্সটপ সব ডিভাইসে কাজ করার জন্য স্মার্ট লগইন ফাংশন
+// পপআপ ফার্স্ট পদ্ধতি - এটি মোবাইল এবং ডেক্সটপ উভয়তেই সবচেয়ে নির্ভরযোগ্য
 window.handleGoogleLogin = function() {
-  if (statusText) statusText.innerText = "Connecting to Google...";
-
-  // মোবাইল বা টাচ ডিভাইসের জন্য Redirect এবং পিসির জন্য Popup (অথবা সার্বজনীন Redirect)
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-  if (isMobile) {
-    // মোবাইলে কোনো পপআপ ব্লক হবে না
-    auth.signInWithRedirect(provider);
-  } else {
-    // পিসিতে দ্রুত লগইনের জন্য পপআপ, আর পপআপ ব্লক হলে রিডাইরেক্ট ফলব্যাক
-    auth.signInWithPopup(provider).catch((error) => {
-      console.warn("Popup blocked or failed, switching to Redirect:", error);
-      auth.signInWithRedirect(provider);
+  if (statusText) statusText.innerText = "Signing in...";
+  
+  auth.signInWithPopup(provider)
+    .then((result) => {
+      console.log("Login success:", result.user);
+    })
+    .catch((error) => {
+      console.error("Popup error, attempting redirect fallback:", error);
+      // পপআপ কোনো কারণে ব্লক হলে বা ফেল করলে রিডাইরেক্ট করবে
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+        auth.signInWithRedirect(provider);
+      } else {
+        alert("Sign in failed: " + error.message);
+      }
     });
-  }
 };
-
-// রিডাইরেক্ট হয়ে ফিরে আসার পর সেশন হ্যান্ডেল করা
-auth.getRedirectResult()
-  .then((result) => {
-    if (result && result.user) {
-      console.log("Logged in successfully via Redirect:", result.user);
-    }
-  })
-  .catch((error) => {
-    console.error("Redirect Login Error:", error);
-    alert("Sign in failed: " + error.message);
-  });
 
 window.handleLogout = function() {
   auth.signOut()
@@ -77,15 +65,24 @@ window.handleLogout = function() {
     });
 };
 
-// Auth State Observer
+// রিডাইরেক্ট রেজাল্ট প্রসেস করা
+auth.getRedirectResult().catch((error) => {
+  if (error && error.code) {
+    console.error("Redirect Login Error:", error);
+  }
+});
+
+// Auth State Observer - সেশন চেক করা
 auth.onAuthStateChanged((user) => {
   if (user) {
+    console.log("Auth state: Logged In as", user.displayName);
     if (loggedOutUI) loggedOutUI.classList.add('hidden');
     if (loggedInUI) loggedInUI.classList.remove('hidden');
     if (userNameDisplay) userNameDisplay.innerText = `Logged in as: ${user.displayName || 'User'}`;
     if (startBtn) startBtn.disabled = false;
     if (statusText) statusText.innerText = "Select options and click Start to find a partner!";
   } else {
+    console.log("Auth state: Logged Out");
     if (loggedOutUI) loggedOutUI.classList.remove('hidden');
     if (loggedInUI) loggedInUI.classList.add('hidden');
     if (userNameDisplay) userNameDisplay.innerText = '';
