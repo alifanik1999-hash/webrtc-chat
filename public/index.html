@@ -3,23 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>1-on-1 Language Exchange</title>
+  <title>1-on-1 Video Chat</title>
 
   <!-- In-App Browser Auto-Redirect & Alert Script -->
   <script>
     (function () {
       const userAgent = navigator.userAgent || navigator.vendor || window.opera;
       
-      // ফেসবুক, মেসেঞ্জার, ইনস্টাগ্রাম, টিকটক ইত্যাদি ইন-অ্যাপ ব্রাউজার চেক
       const isInAppBrowser = /FBAN|FBAV|Instagram|TikTok|Line|MicroMessenger/i.test(userAgent);
 
       if (isInAppBrowser) {
-        // অ্যান্ডরয়েড ইউজারদের জন্য সরাসরি Chrome ব্রাউজারে ওপেন করার চেষ্টা করবে
         if (/Android/i.test(userAgent)) {
           const currentUrl = window.location.href.replace(/^https?:\/\//, '');
           window.location.href = `intent://${currentUrl}#Intent;scheme=https;package=com.android.chrome;end`;
         } else {
-          // iOS (iPhone) বা অন্য ডিভাইস হলে ইউজারকে নোটিশ দেখাবে
           window.addEventListener('DOMContentLoaded', () => {
             const warningDiv = document.createElement('div');
             warningDiv.style.cssText = 'background: #ff4757; color: #fff; padding: 12px; text-align: center; font-weight: bold; position: fixed; top: 0; left: 0; right: 0; z-index: 9999; font-size: 14px;';
@@ -43,7 +40,7 @@
 </head>
 <body>
 
-  <h1>1-on-1 Language Exchange</h1>
+  <h1>1-on-1 Video Chat</h1>
 
   <!-- Logged Out UI -->
   <div id="loggedOutUI">
@@ -60,30 +57,32 @@
 
   <!-- Control Options -->
   <div class="controls">
-    <label>Language:</label>
-    <select id="languageSelect">
-      <option value="All">All Languages</option>
-      <option value="English">English</option>
-      <option value="Spanish">Spanish</option>
-      <option value="Bengali">Bengali</option>
-      <option value="Hindi">Hindi</option>
-      <option value="Arabic">Arabic</option>
-      <option value="French">French</option>
-      <option value="German">German</option>
-      <option value="Mandarin">Mandarin (Chinese)</option>
-      <option value="Japanese">Japanese</option>
-      <option value="Korean">Korean</option>
-      <option value="Russian">Russian</option>
-      <option value="Portuguese">Portuguese</option>
-      <option value="Italian">Italian</option>
-      <option value="Turkish">Turkish</option>
-      <option value="Urdu">Urdu</option>
-      <option value="Indonesian">Indonesian</option>
-    </select>
-
     <label>Country:</label>
     <select id="countrySelect">
-      <option value="Global">Global (Any Country)</option>
+      <option value="Global">Global (All Countries)</option>
+      <option value="United States">United States</option>
+      <option value="United Kingdom">United Kingdom</option>
+      <option value="Canada">Canada</option>
+      <option value="Australia">Australia</option>
+      <option value="Bangladesh">Bangladesh</option>
+      <option value="India">India</option>
+      <option value="Pakistan">Pakistan</option>
+      <option value="Saudi Arabia">Saudi Arabia</option>
+      <option value="United Arab Emirates">United Arab Emirates</option>
+      <option value="Germany">Germany</option>
+      <option value="France">France</option>
+      <option value="Japan">Japan</option>
+      <option value="South Korea">South Korea</option>
+      <option value="China">China</option>
+      <option value="Brazil">Brazil</option>
+      <option value="Turkey">Turkey</option>
+      <option value="Italy">Italy</option>
+      <option value="Spain">Spain</option>
+      <option value="Russia">Russia</option>
+      <option value="Malaysia">Malaysia</option>
+      <option value="Singapore">Singapore</option>
+      <option value="Qatar">Qatar</option>
+      <option value="Kuwait">Kuwait</option>
     </select>
 
     <button id="startBtn" disabled>Start</button>
@@ -111,7 +110,7 @@
     </div>
   </div>
 
-  <!-- Main Script (Cache-busting added to ensure latest JS updates load immediately) -->
-  <script src="script.js?v=1.1"></script>
+  <!-- Main Script -->
+  <script src="script.js?v=1.2"></script>
 </body>
 </html>
