@@ -14,7 +14,7 @@
       const isInAppBrowser = /FBAN|FBAV|Instagram|TikTok|Line|MicroMessenger/i.test(userAgent);
 
       if (isInAppBrowser) {
-        // অ্যান্ডরয়েড ইউজারদের জন্য সরাসরি Chrome ব্রাউজারে ওপেন করার চেষ্টা করবে
+        // অ্যান্ডরয়েড ইউজারদের জন্য সরাসরি Chrome ব্রাউজারে ওপেন করার চেষ্টা করবে
         if (/Android/i.test(userAgent)) {
           const currentUrl = window.location.href.replace(/^https?:\/\//, '');
           window.location.href = `intent://${currentUrl}#Intent;scheme=https;package=com.android.chrome;end`;
@@ -62,9 +62,23 @@
   <div class="controls">
     <label>Language:</label>
     <select id="languageSelect">
+      <option value="All">All Languages</option>
       <option value="English">English</option>
       <option value="Spanish">Spanish</option>
       <option value="Bengali">Bengali</option>
+      <option value="Hindi">Hindi</option>
+      <option value="Arabic">Arabic</option>
+      <option value="French">French</option>
+      <option value="German">German</option>
+      <option value="Mandarin">Mandarin (Chinese)</option>
+      <option value="Japanese">Japanese</option>
+      <option value="Korean">Korean</option>
+      <option value="Russian">Russian</option>
+      <option value="Portuguese">Portuguese</option>
+      <option value="Italian">Italian</option>
+      <option value="Turkish">Turkish</option>
+      <option value="Urdu">Urdu</option>
+      <option value="Indonesian">Indonesian</option>
     </select>
 
     <label>Country:</label>
@@ -74,6 +88,10 @@
 
     <button id="startBtn" disabled>Start</button>
     <button id="nextBtn" disabled>Next</button>
+
+    <!-- Audio / Video Control Buttons -->
+    <button id="muteAudioBtn" onclick="toggleAudio()">🎤 Mute</button>
+    <button id="toggleVideoBtn" onclick="toggleVideo()">📹 Video Off</button>
   </div>
 
   <p id="status">Please sign in with Google to start</p>

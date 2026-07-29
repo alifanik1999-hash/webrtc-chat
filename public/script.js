@@ -276,3 +276,36 @@ function closePeerConnection() {
     peerConnection = null;
   }
 }
+// ==========================================
+// ৫. AUDIO & VIDEO MUTE/UNMUTE CONTROLS
+// ==========================================
+
+window.toggleAudio = function() {
+  if (!localStream) {
+    console.error("Local stream not available yet.");
+    return;
+  }
+  const audioTrack = localStream.getAudioTracks()[0];
+  if (audioTrack) {
+    audioTrack.enabled = !audioTrack.enabled;
+    const btn = document.getElementById('muteAudioBtn');
+    if (btn) {
+      btn.innerText = audioTrack.enabled ? '🎤 Mute' : '🎙️ Unmute';
+    }
+  }
+};
+
+window.toggleVideo = function() {
+  if (!localStream) {
+    console.error("Local stream not available yet.");
+    return;
+  }
+  const videoTrack = localStream.getVideoTracks()[0];
+  if (videoTrack) {
+    videoTrack.enabled = !videoTrack.enabled;
+    const btn = document.getElementById('toggleVideoBtn');
+    if (btn) {
+      btn.innerText = videoTrack.enabled ? '📹 Video Off' : '📷 Video On';
+    }
+  }
+};
