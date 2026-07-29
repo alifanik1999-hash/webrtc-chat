@@ -33,18 +33,39 @@ const languageSelect = document.getElementById('languageSelect');
 const countrySelect = document.getElementById('countrySelect');
 
 // ==========================================
-// ৩. FIREBASE AUTHENTICATION LOGIC
+// ৩. CROSS-DEVICE HYBRID AUTH LOGIC
 // ==========================================
+
+// মোবাইল এবং ডেক্সটপ সব ডিভাইসে কাজ করার জন্য স্মার্ট লগইন ফাংশন
 window.handleGoogleLogin = function() {
-  auth.signInWithPopup(provider)
-    .then((result) => {
-      console.log("Logged in user:", result.user);
-    })
-    .catch((error) => {
-      console.error("Login Error:", error);
-      alert("Sign in failed: " + error.message);
+  if (statusText) statusText.innerText = "Connecting to Google...";
+
+  // মোবাইল বা টাচ ডিভাইসের জন্য Redirect এবং পিসির জন্য Popup (অথবা সার্বজনীন Redirect)
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  if (isMobile) {
+    // মোবাইলে কোনো পপআপ ব্লক হবে না
+    auth.signInWithRedirect(provider);
+  } else {
+    // পিসিতে দ্রুত লগইনের জন্য পপআপ, আর পপআপ ব্লক হলে রিডাইরেক্ট ফলব্যাক
+    auth.signInWithPopup(provider).catch((error) => {
+      console.warn("Popup blocked or failed, switching to Redirect:", error);
+      auth.signInWithRedirect(provider);
     });
+  }
 };
+
+// রিডাইরেক্ট হয়ে ফিরে আসার পর সেশন হ্যান্ডেল করা
+auth.getRedirectResult()
+  .then((result) => {
+    if (result && result.user) {
+      console.log("Logged in successfully via Redirect:", result.user);
+    }
+  })
+  .catch((error) => {
+    console.error("Redirect Login Error:", error);
+    alert("Sign in failed: " + error.message);
+  });
 
 window.handleLogout = function() {
   auth.signOut()
