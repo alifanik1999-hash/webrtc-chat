@@ -22,6 +22,9 @@ io.on('connection', (socket) => {
     const selectedCountry = country || 'Any';
     const queueKey = `${selectedLang}_${selectedCountry}`;
 
+    // আগের কোনো রুমে থাকলে তা থেকে বের করে দেওয়া
+    leaveCurrentRoom(socket);
+
     if (!queues[queueKey]) {
       queues[queueKey] = [];
     }
@@ -37,35 +40,51 @@ io.on('connection', (socket) => {
       roomId: null
     };
 
-    if (queues[queueKey].length >= 2) {
+    // ম্যাচ খোঁজার চেষ্টা
+    tryMatchUser(queueKey);
+  });
+
+  function tryMatchUser(queueKey) {
+    if (queues[queueKey] && queues[queueKey].length >= 2) {
       const user1 = queues[queueKey].shift();
       const user2 = queues[queueKey].shift();
-
-      const roomId = `room_${user1}_${user2}`;
 
       const socket1 = io.sockets.sockets.get(user1);
       const socket2 = io.sockets.sockets.get(user2);
 
+      // FIXED: যদি ইউজার১ ডিসকানেক্টড থাকে, তবে ইউজার২-কে আবার কিউতে ফেরত পাঠানো
+      if (!socket1 && socket2) {
+        queues[queueKey].unshift(user2);
+        return;
+      }
+      // FIXED: যদি ইউজার২ ডিসকানেক্টড থাকে, তবে ইউজার১-কে আবার কিউতে ফেরত পাঠানো
+      if (socket1 && !socket2) {
+        queues[queueKey].unshift(user1);
+        return;
+      }
+
       if (socket1 && socket2) {
+        const roomId = `room_${user1}_${user2}`;
+
         socket1.join(roomId);
         socket2.join(roomId);
 
-        userSessions[user1].roomId = roomId;
-        userSessions[user2].roomId = roomId;
+        if (userSessions[user1]) userSessions[user1].roomId = roomId;
+        if (userSessions[user2]) userSessions[user2].roomId = roomId;
 
         socket1.emit('match-found', { roomId, isInitiator: true });
         socket2.emit('match-found', { roomId, isInitiator: false });
       }
-    } else {
-      socket.emit('waiting', 'Searching for a language partner...');
     }
-  });
+  }
 
   socket.on('signal', (data) => {
-    socket.to(data.roomId).emit('signal', {
-      signal: data.signal,
-      from: socket.id
-    });
+    if (data && data.roomId) {
+      socket.to(data.roomId).emit('signal', {
+        signal: data.signal,
+        from: socket.id
+      });
+    }
   });
 
   socket.on('next-user', () => {
