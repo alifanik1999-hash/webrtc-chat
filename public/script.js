@@ -41,10 +41,6 @@ const remoteVideo = document.getElementById('remoteVideo');
 const languageSelect = document.getElementById('languageSelect');
 const countrySelect = document.getElementById('countrySelect');
 
-// Mic & Camera Buttons (HTML এর সাথে মিল রেখে)
-const muteMicBtn = document.getElementById('muteMicBtn') || document.querySelector('button:contains("Mute")') || document.querySelectorAll('.video-box button')[0];
-const toggleCamBtn = document.getElementById('toggleCamBtn') || document.querySelectorAll('.video-box button')[1];
-
 /* ==========================================
    ৩. FIREBASE AUTHENTICATION LOGIC
    ========================================== */
@@ -69,7 +65,7 @@ if (logoutBtn) {
   });
 }
 
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   if (user) {
     if (loggedOutUI) loggedOutUI.classList.add('hidden');
     if (loggedInUI) loggedInUI.classList.remove('hidden');
@@ -77,6 +73,9 @@ onAuthStateChanged(auth, (user) => {
     if (userPhotoDisplay) userPhotoDisplay.src = user.photoURL || 'https://via.placeholder.com/32';
     if (startBtn) startBtn.disabled = false;
     if (statusText) statusText.innerText = "Select options and click Start to find a partner!";
+    
+    // সাইন ইন সফল হলে মিডিয়া স্ট্রিম শুরু হবে
+    await startLocalMedia();
   } else {
     if (loggedOutUI) loggedOutUI.classList.remove('hidden');
     if (loggedInUI) loggedInUI.classList.add('hidden');
@@ -88,7 +87,7 @@ onAuthStateChanged(auth, (user) => {
 });
 
 /* ==========================================
-   ৪. WEBRTC & SOCKET.IO LOGIC
+   ৪. WEBRTC & SOCKET.IO SETUP
    ========================================== */
 const socket = io();
 
@@ -97,7 +96,6 @@ let peerConnection = null;
 let currentRoomId = null;
 let pendingCandidates = [];
 
-// Google STUN + Metered TURN Server Configurations
 const rtcConfig = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -129,58 +127,70 @@ async function startLocalMedia() {
       });
       if (localVideo) {
         localVideo.srcObject = localStream;
-        localVideo.muted = true; // Local Feedback Mute
-        
-        const playPromise = localVideo.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(error => {
-            console.log("Autoplay handled:", error);
-          });
-        }
+        localVideo.muted = true;
+        await localVideo.play().catch(e => console.log("Autoplay blocked:", e));
       }
     } catch (err) {
-      console.error('Camera/Mic error:', err);
+      console.error('Camera/Mic permission error:', err);
       if (statusText) statusText.innerText = "Camera/Microphone permission required!";
     }
   }
 }
 
 document.addEventListener('DOMContentLoaded', startLocalMedia);
-startLocalMedia();
 
 /* ==========================================
-   ৫. MIC & CAMERA CONTROLS (NEW)
+   ৫. MIC & CAMERA CONTROL FUNCTIONS
    ========================================== */
-// Mute / Unmute Microphone
-if (muteMicBtn) {
-  muteMicBtn.addEventListener('click', () => {
-    if (localStream) {
-      const audioTrack = localStream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        muteMicBtn.innerText = audioTrack.enabled ? "Mute Mic" : "Unmute Mic";
-        muteMicBtn.style.backgroundColor = audioTrack.enabled ? "" : "#dc3545";
-      }
-    }
-  });
-}
+document.addEventListener('DOMContentLoaded', () => {
+  // HTML-এর ভিডিও বক্সের ভেতরের বাটন দুটি ধরা হচ্ছে
+  const videoBoxButtons = document.querySelectorAll('.video-box button');
+  const muteMicBtn = videoBoxButtons[0];
+  const toggleCamBtn = videoBoxButtons[1];
 
-// Turn On / Off Camera
-if (toggleCamBtn) {
-  toggleCamBtn.addEventListener('click', () => {
-    if (localStream) {
-      const videoTrack = localStream.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        toggleCamBtn.innerText = videoTrack.enabled ? "Turn Off Cam" : "Turn On Cam";
-        toggleCamBtn.style.backgroundColor = videoTrack.enabled ? "" : "#dc3545";
+  if (muteMicBtn) {
+    muteMicBtn.addEventListener('click', () => {
+      if (localStream) {
+        const audioTrack = localStream.getAudioTracks()[0];
+        if (audioTrack) {
+          audioTrack.enabled = !audioTrack.enabled;
+          if (audioTrack.enabled) {
+            muteMicBtn.innerText = "Mute Mic";
+            muteMicBtn.style.backgroundColor = ""; // ডিফল্ট কালার
+            muteMicBtn.style.color = "";
+          } else {
+            muteMicBtn.innerText = "Unmute Mic";
+            muteMicBtn.style.backgroundColor = "#dc3545"; // বন্ধ বোঝাতে লাল কালার
+            muteMicBtn.style.color = "#fff";
+          }
+        }
       }
-    }
-  });
-}
+    });
+  }
+
+  if (toggleCamBtn) {
+    toggleCamBtn.addEventListener('click', () => {
+      if (localStream) {
+        const videoTrack = localStream.getVideoTracks()[0];
+        if (videoTrack) {
+          videoTrack.enabled = !videoTrack.enabled;
+          if (videoTrack.enabled) {
+            toggleCamBtn.innerText = "Turn Off Cam";
+            toggleCamBtn.style.backgroundColor = ""; // ডিফল্ট কালার
+            toggleCamBtn.style.color = "";
+          } else {
+            toggleCamBtn.innerText = "Turn On Cam";
+            toggleCamBtn.style.backgroundColor = "#dc3545"; // বন্ধ বোঝাতে লাল কালার
+            toggleCamBtn.style.color = "#fff";
+          }
+        }
+      }
+    });
+  }
+});
 
 /* ==========================================
-   ৬. MATCHMAKING & SIGNALING
+   ৬. MATCHMAKING & CONNECTION LOGIC
    ========================================== */
 if (startBtn) {
   startBtn.addEventListener('click', async () => {
@@ -213,7 +223,7 @@ socket.on('waiting', (msg) => {
 });
 
 socket.on('match-found', async ({ roomId, isInitiator }) => {
-  console.log(`Matched! Room: ${roomId}, Initiator: ${isInitiator}`);
+  console.log(`Matched! Room ID: ${roomId}, Initiator: ${isInitiator}`);
   if (statusText) statusText.innerText = "Connected with a partner!";
   currentRoomId = roomId;
 
@@ -261,7 +271,7 @@ async function createPeerConnection() {
         stream.addTrack(event.track);
         remoteVideo.srcObject = stream;
       }
-      remoteVideo.play().catch(e => console.log("Remote Video Play Error:", e));
+      remoteVideo.play().catch(e => console.log("Video Play Error:", e));
     }
   };
 }
