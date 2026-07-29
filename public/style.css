@@ -114,7 +114,6 @@ button {
   box-sizing: border-box;
 }
 
-/* Base Video Card */
 .video-card {
   position: relative;
   background-color: #1e293b;
@@ -123,14 +122,12 @@ button {
   border: 1px solid #334155;
 }
 
-/* Local Screen (Left Side - Full Height) */
 .local-card {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
-/* Right Column Container with Relative Position */
 .right-column {
   flex: 1;
   position: relative;
@@ -138,13 +135,12 @@ button {
   flex-direction: column;
 }
 
-/* Partner Screen (Takes top area down to the controls) */
 .partner-card {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  bottom: 86px; /* বাটন বারের উচ্চতা + গ্যাপ */
+  bottom: 86px;
   width: 100%;
   background-color: #1e293b;
   border-radius: 12px;
@@ -165,7 +161,6 @@ button {
   z-index: 10;
 }
 
-/* Partner Info Badge Top Left */
 .partner-info-badge {
   position: absolute;
   top: 12px;
@@ -193,7 +188,6 @@ button {
   color: #38bdf8;
 }
 
-/* Video Frame Fill */
 video {
   width: 100%;
   height: 100%;
@@ -205,7 +199,6 @@ video {
   transform: scaleX(-1);
 }
 
-/* Hover Controls inside Local Video */
 .overlay-controls {
   position: absolute;
   bottom: 0;
@@ -232,10 +225,6 @@ video {
   padding: 12px 20px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   font-size: 15px;
-  max-width: 240px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .overlay-controls button:hover {
@@ -243,7 +232,96 @@ video {
 }
 
 /* ==========================================
-   OmeTV CONTROLS (Absolute Pinned to Bottom)
+   CHAT OVERLAY STYLES
+   ========================================== */
+.chat-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 180px;
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.95), transparent);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 12px;
+  z-index: 20;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding-right: 4px;
+}
+
+.chat-messages::-webkit-scrollbar {
+  width: 4px;
+}
+.chat-messages::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.message {
+  max-width: 80%;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.message.my-message {
+  align-self: flex-end;
+  background: #3b82f6;
+  color: #fff;
+}
+
+.message.partner-message {
+  align-self: flex-start;
+  background: rgba(51, 65, 85, 0.85);
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chat-form {
+  display: flex;
+  gap: 8px;
+}
+
+#chatInput {
+  flex: 1;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #fff;
+  outline: none;
+  font-size: 14px;
+}
+
+#chatInput:focus {
+  border-color: #38bdf8;
+}
+
+#sendBtn {
+  background-color: #10b981;
+  color: white;
+  padding: 8px 16px;
+  font-size: 14px;
+  border-radius: 8px;
+}
+
+#sendBtn:hover:not(:disabled) {
+  background-color: #059669;
+}
+
+/* ==========================================
+   CONTROLS (Pinned to Bottom)
    ========================================== */
 .partner-controls {
   position: absolute;
@@ -272,7 +350,6 @@ video {
   color: #cbd5e1;
   font-weight: 600;
   white-space: nowrap;
-  flex-shrink: 0;
 }
 
 select {
@@ -298,58 +375,31 @@ select {
   letter-spacing: 1px;
   border-radius: 12px;
   color: white;
-  box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.5);
   text-transform: uppercase;
-  white-space: nowrap;
 }
 
 .start-btn { background-color: #10b981; }
-.start-btn:hover:not(:disabled) { background-color: #059669; transform: scale(1.03); }
-
 .stop-btn { background-color: #ef4444; }
-.stop-btn:hover:not(:disabled) { background-color: #dc2626; transform: scale(1.03); }
-
 .next-btn { background-color: #3b82f6; }
-.next-btn:hover:not(:disabled) { background-color: #2563eb; transform: scale(1.03); }
 
 .icon-btn {
   padding: 12px;
   font-size: 18px;
   background-color: #374151;
   border-radius: 12px;
-  white-space: nowrap;
 }
-
-.icon-btn:hover:not(:disabled) { background-color: #4b5563; transform: scale(1.03); }
 
 button:disabled {
   opacity: 0.35;
   cursor: not-allowed;
-  transform: none !important;
 }
 
 .hidden { display: none !important; }
 
-/* Responsive Mobile Layout */
+/* Responsive */
 @media (max-width: 900px) {
-  .main-content {
-    flex-direction: column;
-    height: auto;
-  }
-  .right-column {
-    height: 450px;
-  }
-  .partner-card {
-    position: relative;
-    height: 360px;
-    bottom: auto;
-  }
-  .partner-controls {
-    position: relative;
-    height: auto;
-    flex-wrap: wrap;
-    justify-content: center;
-    padding: 12px;
-    margin-top: 12px;
-  }
+  .main-content { flex-direction: column; }
+  .right-column { height: 450px; }
+  .partner-card { position: relative; height: 360px; bottom: auto; }
+  .partner-controls { position: relative; height: auto; flex-wrap: wrap; justify-content: center; margin-top: 12px; }
 }
