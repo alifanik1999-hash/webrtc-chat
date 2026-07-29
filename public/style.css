@@ -137,14 +137,20 @@ button {
   flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 16px;
   height: 100%;
 }
 
-/* Partner Screen (Takes remaining vertical space in right column) */
+/* Partner Screen (Expands to fill space right above controls) */
 .partner-card {
   flex: 1;
   width: 100%;
+  position: relative;
+  background-color: #1e293b;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #334155;
 }
 
 .video-label {
@@ -240,7 +246,7 @@ video {
 }
 
 /* ==========================================
-   OmeTV STYLE CONTROLS (Bottom Right)
+   OmeTV STYLE CONTROLS (Aligned to Bottom)
    ========================================== */
 .partner-controls {
   display: flex;
@@ -254,6 +260,7 @@ video {
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.6);
   width: 100%;
+  margin-top: auto;
 }
 
 .country-wrapper {
