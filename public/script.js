@@ -36,7 +36,6 @@ const countrySelect = document.getElementById('countrySelect');
 // ৩. RELIABLE AUTH LOGIC
 // ==========================================
 
-// পপআপ ফার্স্ট পদ্ধতি - এটি মোবাইল এবং ডেক্সটপ উভয়তেই সবচেয়ে নির্ভরযোগ্য
 window.handleGoogleLogin = function() {
   if (statusText) statusText.innerText = "Signing in...";
   
@@ -46,7 +45,6 @@ window.handleGoogleLogin = function() {
     })
     .catch((error) => {
       console.error("Popup error, attempting redirect fallback:", error);
-      // পপআপ কোনো কারণে ব্লক হলে বা ফেল করলে রিডাইরেক্ট করবে
       if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
         auth.signInWithRedirect(provider);
       } else {
@@ -65,14 +63,12 @@ window.handleLogout = function() {
     });
 };
 
-// রিডাইরেক্ট রেজাল্ট প্রসেস করা
 auth.getRedirectResult().catch((error) => {
   if (error && error.code) {
     console.error("Redirect Login Error:", error);
   }
 });
 
-// Auth State Observer - সেশন চেক করা
 auth.onAuthStateChanged((user) => {
   if (user) {
     console.log("Auth state: Logged In as", user.displayName);
@@ -102,11 +98,26 @@ let peerConnection = null;
 let currentRoomId = null;
 let pendingCandidates = [];
 
-// Google STUN Configuration
+// TURN & STUN Server Configurations (Metered.ca Active Credentials)
 const rtcConfig = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' }
+    { urls: 'stun:stun1.l.google.com:19302' },
+    {
+      urls: "turn:global.relay.metered.ca:80",
+      username: "de2fad12ff781e4aa7e9c308",
+      credential: "KdnZN2O/QdYhlq68"
+    },
+    {
+      urls: "turn:global.relay.metered.ca:443",
+      username: "de2fad12ff781e4aa7e9c308",
+      credential: "KdnZN2O/QdYhlq68"
+    },
+    {
+      urls: "turn:global.relay.metered.ca:443?transport=tcp",
+      username: "de2fad12ff781e4aa7e9c308",
+      credential: "KdnZN2O/QdYhlq68"
+    }
   ]
 };
 
@@ -123,7 +134,6 @@ async function startLocalMedia() {
   }
 }
 
-// পেজ লোড হলেই লোকাল স্ট্রিম চালু
 startLocalMedia();
 
 // Matchmaking Event Listeners
