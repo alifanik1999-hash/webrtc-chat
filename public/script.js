@@ -276,10 +276,12 @@ function closePeerConnection() {
     peerConnection = null;
   }
 }
+
 // ==========================================
-// ৫. AUDIO & VIDEO MUTE/UNMUTE CONTROLS
+// ৫. MEDIA CONTROLS & REPORT FUNCTIONS
 // ==========================================
 
+// Audio Mute / Unmute
 window.toggleAudio = function() {
   if (!localStream) {
     console.error("Local stream not available yet.");
@@ -289,12 +291,11 @@ window.toggleAudio = function() {
   if (audioTrack) {
     audioTrack.enabled = !audioTrack.enabled;
     const btn = document.getElementById('muteAudioBtn');
-    if (btn) {
-      btn.innerText = audioTrack.enabled ? '🎤 Mute' : '🎙️ Unmute';
-    }
+    if (btn) btn.innerText = audioTrack.enabled ? '🎤 Mute' : '🎙️ Unmute';
   }
 };
 
+// Video On / Off
 window.toggleVideo = function() {
   if (!localStream) {
     console.error("Local stream not available yet.");
@@ -304,8 +305,21 @@ window.toggleVideo = function() {
   if (videoTrack) {
     videoTrack.enabled = !videoTrack.enabled;
     const btn = document.getElementById('toggleVideoBtn');
-    if (btn) {
-      btn.innerText = videoTrack.enabled ? '📹 Video Off' : '📷 Video On';
-    }
+    if (btn) btn.innerText = videoTrack.enabled ? '📹 Video Off' : '📷 Video On';
   }
+};
+
+// Quick Report Logic
+window.reportUser = function() {
+  if (!currentRoomId) {
+    alert("You are not connected to anyone!");
+    return;
+  }
+
+  // Socket দিয়ে সার্ভারে রিপোর্ট পাঠাবে
+  socket.emit('report-user', { roomId: currentRoomId });
+  alert("User reported successfully.");
+
+  // নতুন পার্টনারের জন্য স্কিপ করবে
+  if (nextBtn) nextBtn.click();
 };

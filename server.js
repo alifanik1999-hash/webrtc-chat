@@ -95,6 +95,14 @@ io.on('connection', (socket) => {
     socket.emit('start-rematch', { language: lang, country: country });
   });
 
+  // ==========================================
+  // 🚩 REPORT USER EVENT HANDLER
+  // ==========================================
+  socket.on('report-user', ({ roomId }) => {
+    console.log(`⚠️ REPORT RECEIVED: User in room ${roomId} was reported by their partner.`);
+    // ব্যাকএন্ডে রিপোর্ট হ্যান্ডেল করার জন্য প্রয়োজন হলে ডাটাবেজে সেভ করতে পারেন
+  });
+
   socket.on('disconnect', () => {
     console.log(`User Left: ${socket.id}`);
     leaveCurrentRoom(socket);
