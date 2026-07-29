@@ -4,6 +4,32 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>1-on-1 Language Exchange</title>
+
+  <!-- In-App Browser Auto-Redirect & Alert Script -->
+  <script>
+    (function () {
+      const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+      
+      // ফেসবুক, মেসেঞ্জার, ইনস্টাগ্রাম, টিকটক ইত্যাদি ইন-অ্যাপ ব্রাউজার চেক
+      const isInAppBrowser = /FBAN|FBAV|Instagram|TikTok|Line|MicroMessenger/i.test(userAgent);
+
+      if (isInAppBrowser) {
+        // অ্যান্ডরয়েড ইউজারদের জন্য সরাসরি Chrome ব্রাউজারে ওপেন করার চেষ্টা করবে
+        if (/Android/i.test(userAgent)) {
+          const currentUrl = window.location.href.replace(/^https?:\/\//, '');
+          window.location.href = `intent://${currentUrl}#Intent;scheme=https;package=com.android.chrome;end`;
+        } else {
+          // iOS (iPhone) বা অন্য ডিভাইস হলে ইউজারকে নোটিশ দেখাবে
+          window.addEventListener('DOMContentLoaded', () => {
+            const warningDiv = document.createElement('div');
+            warningDiv.style.cssText = 'background: #ff4757; color: #fff; padding: 12px; text-align: center; font-weight: bold; position: fixed; top: 0; left: 0; right: 0; z-index: 9999; font-size: 14px;';
+            warningDiv.innerHTML = '⚠️ ক্যামেরা ও মাইক পারমিশনের জন্য ওপরের ৩-ডটে (...) ক্লিক করে <b>Open in Chrome/Safari</b> সিলেক্ট করুন।';
+            document.body.prepend(warningDiv);
+          });
+        }
+      }
+    })();
+  </script>
   
   <!-- CSS Link -->
   <link rel="stylesheet" href="style.css">
