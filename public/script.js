@@ -26,7 +26,6 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-// Local Persistence নিশ্চিত করা যাতে পেজ রিফ্রেশ হলেও লগইন না চলে যায়
 setPersistence(auth, browserLocalPersistence).catch(err => console.error(err));
 
 /* DOM Elements */
@@ -48,11 +47,12 @@ const remoteVideo = document.getElementById('remoteVideo');
 const muteMicBtn = document.getElementById('muteMicBtn');
 const toggleCamBtn = document.getElementById('toggleCamBtn');
 const countrySelect = document.getElementById('countrySelect');
+const onlineCountDisplay = document.getElementById('onlineCount');
 
 const chatInput = document.getElementById('chatInput');
 const sendBtn = document.getElementById('sendBtn');
 
-/* Page Load-এ Redirect Result আগে চেক করা */
+/* Redirect Logins */
 (async function handleRedirect() {
   try {
     const result = await getRedirectResult(auth);
@@ -64,19 +64,14 @@ const sendBtn = document.getElementById('sendBtn');
   }
 })();
 
-/* Sign-In Handler */
 if (loginBtn) {
   loginBtn.addEventListener('click', async () => {
     if (statusText) statusText.innerText = "Connecting to Google...";
-    
-    // মোবাইল কি না চেক করা
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     if (isMobile) {
-      // মোবাইলের জন্য সরাসরি Redirect
       await signInWithRedirect(auth, provider);
     } else {
-      // কম্পিউটারের জন্য Popup, ফেল করলে Redirect
       try {
         await signInWithPopup(auth, provider);
       } catch (err) {
@@ -119,7 +114,7 @@ onAuthStateChanged(auth, (user) => {
   updateUIForUser(user);
 });
 
-/* Socket & WebRTC Setup */
+/* Socket & WebRTC Connections */
 const socket = io({ 
   transports: ['websocket', 'polling'],
   reconnection: true,
@@ -154,7 +149,7 @@ const rtcConfig = {
   iceCandidatePoolSize: 10
 };
 
-/* Noise Suppression Audio Setup */
+/* Camera and Mic Initialization */
 async function startLocalMedia() {
   if (!localStream) {
     try {
@@ -227,19 +222,32 @@ socket.on('receive-message', ({ message }) => {
   if (statusText) statusText.innerText = `Partner: ${message}`;
 });
 
-/* Matching Actions */
+/* Report and Ban Handling */
 if (reportBtn) {
   reportBtn.addEventListener('click', () => {
     if (currentRoomId) {
-      alert("Partner reported! Searching next...");
-      stopConnection();
-      socket.emit('next-user');
+      if (confirm("Are you sure you want to report this user?")) {
+        socket.emit('report-partner', { roomId: currentRoomId });
+        alert("Partner reported! Finding a new match...");
+        stopConnection();
+        socket.emit('next-user');
+      }
     } else {
       alert("No active partner to report.");
     }
   });
 }
 
+socket.on('banned', (reason) => {
+  alert("🚫 Access Blocked: " + reason);
+  window.location.reload();
+});
+
+socket.on('online-users-count', (count) => {
+  if (onlineCountDisplay) onlineCountDisplay.innerText = count;
+});
+
+/* Controls Logic */
 if (startBtn) {
   startBtn.addEventListener('click', async () => {
     await startLocalMedia();
@@ -328,7 +336,7 @@ function disableChat() {
   if (sendBtn) sendBtn.disabled = true;
 }
 
-/* WebRTC Signaling */
+/* Peer Connection Management */
 async function createPeerConnection() {
   closePeerConnection();
   peerConnection = new RTCPeerConnection(rtcConfig);

@@ -1,85 +1,128 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const path = require('path');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
 
 const app = express();
 const server = http.createServer(app);
-
-/* Security */
-app.use(
-  helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false,
-  })
-);
-
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 200,
-  message: 'Too many requests, try again later.',
-});
-
-app.use(limiter);
-app.use(express.static(path.join(__dirname, 'public')));
-
-/* Socket.io */
 const io = new Server(server, {
-  cors: { origin: "*", methods: ["GET", "POST"] },
-  transports: ['websocket', 'polling']
+  cors: { origin: "*" }
 });
 
-let waitingUsers = [];
+app.use(express.static('public'));
 
-function sanitizeInput(text) {
-  if (typeof text !== 'string') return '';
-  return text.replace(/[&<>"']/g, function (m) {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
-  });
-}
+// Global Tracking
+const bannedIPs = new Set();
+const userReportCounts = {}; // { socketId: count }
+let onlineUsersCount = 0;
+let waitingQueue = []; // [{ socketId, country }]
 
 io.on('connection', (socket) => {
-  console.log(`Connected: ${socket.id}`);
+  const clientIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
 
-  socket.on('find-match', (data = {}) => {
-    waitingUsers = waitingUsers.filter(user => user.id !== socket.id);
+  // ১. IP ব্যান চেক
+  if (bannedIPs.has(clientIP)) {
+    socket.emit('banned', 'Your IP has been temporarily banned due to receiving multiple reports.');
+    socket.disconnect(true);
+    return;
+  }
 
-    const userData = {
-      id: socket.id,
-      country: sanitizeInput(data.country || 'Global'),
-      language: sanitizeInput(data.language || 'English')
-    };
+  // ২. লাইভ অনলাইন ইউজার আপডেট
+  onlineUsersCount++;
+  io.emit('online-users-count', onlineUsersCount);
 
-    if (waitingUsers.length > 0) {
-      const partner = waitingUsers.pop();
-      const roomId = `room_${socket.id}_${partner.id}`;
+  // ৩. পার্টনার খোঁজার লজিক (Matchmaking)
+  socket.on('find-match', ({ country }) => {
+    // আগের কিউতে থাকলে সরিয়ে ফেলা
+    waitingQueue = waitingQueue.filter(user => user.socketId !== socket.id);
 
-      socket.join(roomId);
-      partner.socket.join(roomId);
+    // উপযুক্ত পার্টনার খোঁজা
+    const matchIndex = waitingQueue.findIndex(user => {
+      if (country === 'Global' || user.country === 'Global') return true;
+      return user.country === country;
+    });
 
-      socket.emit('match-found', { roomId, isInitiator: true });
-      partner.socket.emit('match-found', { roomId, isInitiator: false });
+    if (matchIndex !== -1) {
+      const partner = waitingQueue.splice(matchIndex, 1)[0];
+      const partnerSocket = io.sockets.sockets.get(partner.socketId);
+
+      if (partnerSocket) {
+        const roomId = `room_${socket.id}_${partner.socketId}`;
+        socket.join(roomId);
+        partnerSocket.join(roomId);
+
+        socket.emit('match-found', { roomId, isInitiator: true });
+        partnerSocket.emit('match-found', { roomId, isInitiator: false });
+      } else {
+        waitingQueue.push({ socketId: socket.id, country });
+        socket.emit('waiting', `Searching for a partner from ${country}...`);
+      }
     } else {
-      waitingUsers.push({ id: socket.id, socket, userData });
-      socket.emit('waiting', 'Searching for a partner...');
+      waitingQueue.push({ socketId: socket.id, country });
+      socket.emit('waiting', `Searching for a partner from ${country}...`);
     }
   });
 
+  // ৪. WebRTC সিগন্যালিং
   socket.on('signal', ({ roomId, signal }) => {
     socket.to(roomId).emit('signal', { signal });
   });
 
-  socket.on('next-user', () => {
-    waitingUsers = waitingUsers.filter(user => user.id !== socket.id);
-    socket.broadcast.emit('peer-disconnected');
-    socket.emit('start-rematch', { language: 'English', country: 'Global' });
+  // ৫. মেসেজ পাঠানো
+  socket.on('send-message', ({ roomId, message }) => {
+    socket.to(roomId).emit('receive-message', { message });
   });
 
+  // ৬. রিপোর্ট ও অটো-ব্যান লজিক
+  socket.on('report-partner', ({ roomId }) => {
+    const room = io.sockets.adapter.rooms.get(roomId);
+    if (room) {
+      for (const id of room) {
+        if (id !== socket.id) {
+          userReportCounts[id] = (userReportCounts[id] || 0) + 1;
+
+          // ৩ বার বা তার বেশি রিপোর্ট খেলে ব্যান
+          if (userReportCounts[id] >= 3) {
+            const partnerSocket = io.sockets.sockets.get(id);
+            if (partnerSocket) {
+              const partnerIP = partnerSocket.handshake.headers['x-forwarded-for'] || partnerSocket.handshake.address;
+              bannedIPs.add(partnerIP);
+              
+              partnerSocket.emit('banned', 'You have been banned due to receiving multiple user reports.');
+              partnerSocket.disconnect(true);
+            }
+          }
+          break;
+        }
+      }
+    }
+  });
+
+  // ৭. লিভ / নেক্সট ইউজার
+  socket.on('leave-room', () => {
+    removeFromRooms(socket);
+  });
+
+  socket.on('next-user', () => {
+    removeFromRooms(socket);
+    socket.emit('start-rematch', { country: 'Global' });
+  });
+
+  function removeFromRooms(s) {
+    s.rooms.forEach(room => {
+      if (room !== s.id) {
+        s.to(room).emit('peer-disconnected');
+        s.leave(room);
+      }
+    });
+    waitingQueue = waitingQueue.filter(user => user.socketId !== s.id);
+  }
+
+  // ৮. ডিসকানেক্ট হ্যান্ডলার
   socket.on('disconnect', () => {
-    waitingUsers = waitingUsers.filter(user => user.id !== socket.id);
-    socket.broadcast.emit('peer-disconnected');
+    removeFromRooms(socket);
+    onlineUsersCount = Math.max(0, onlineUsersCount - 1);
+    io.emit('online-users-count', onlineUsersCount);
+    delete userReportCounts[socket.id];
   });
 });
 
