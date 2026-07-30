@@ -89,7 +89,6 @@ if (fullScreenBtn && fullScreenContainer) {
     console.error("Persistence Error:", err);
   }
 
-  // Handle redirect result for mobile/remote browsers
   try {
     const result = await getRedirectResult(auth);
     if (result && result.user) {
@@ -210,7 +209,7 @@ async function startLocalMedia() {
       if (localVideo) {
         localVideo.srcObject = localStream;
         localVideo.muted = true;
-        localVideo.setAttribute('playsinline', true);
+        localVideo.setAttribute('playsinline', 'true');
         await localVideo.play().catch(e => console.log(e));
       }
     } catch (err) {
@@ -421,8 +420,18 @@ async function createPeerConnection() {
         stream.addTrack(event.track);
         remoteVideo.srcObject = stream;
       }
-      remoteVideo.setAttribute('playsinline', true);
-      remoteVideo.play().catch(e => console.log(e));
+      remoteVideo.setAttribute('playsinline', 'true');
+      remoteVideo.muted = false;
+      
+      const playPromise = remoteVideo.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.warn("Autoplay blocked, attempting user-gesture recovery:", error);
+          document.addEventListener('click', () => {
+            remoteVideo.play().catch(e => console.log("Manual play failed:", e));
+          }, { once: true });
+        });
+      }
     }
   };
 }
