@@ -7,6 +7,28 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/socket.io/socket.io.js"></script>
 
+  <!-- Custom Fullscreen CSS Grid Layout -->
+  <style>
+    /* When Fullscreen mode is activated on fullScreenContainer */
+    #fullScreenContainer:fullscreen {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      padding: 1rem;
+      background-color: #0f172a; /* Dark background */
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* Mobile Responsive Split in Fullscreen */
+    @media (max-width: 768px) {
+      #fullScreenContainer:fullscreen {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 1fr;
+      }
+    }
+  </style>
+
   <!-- Messenger In-App Browser Auto-Redirect -->
   <script>
     (function() {
@@ -58,38 +80,36 @@
   <!-- Main Area -->
   <main class="flex-1 flex flex-col items-center justify-center p-3 md:p-6 max-w-6xl mx-auto w-full">
     
-    <!-- Status Text -->
-    <div class="mb-4 text-center">
+    <!-- Status Text & Fullscreen Toggle -->
+    <div class="mb-4 text-center flex items-center justify-center gap-4">
       <span id="status" class="bg-gray-800 text-blue-300 border border-gray-700 text-sm md:text-base px-5 py-2.5 rounded-full font-semibold shadow-md">
         Please sign in with Google to start
       </span>
+      <button id="fullScreenBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-xs md:text-sm font-bold border border-blue-500 transition shadow-md flex items-center gap-1">
+        ⛶ Fullscreen Both
+      </button>
     </div>
 
-    <!-- Video Windows Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full h-[50vh] md:h-[58vh]">
+    <!-- Video Container Grid (Target for Fullscreen) -->
+    <div id="fullScreenContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full h-[50vh] md:h-[58vh]">
       
       <!-- Local Stream Video -->
-      <div class="relative bg-gray-800 rounded-xl overflow-hidden border border-gray-700 flex items-center justify-center shadow-lg">
+      <div class="relative bg-gray-800 rounded-xl overflow-hidden border border-gray-700 flex items-center justify-center shadow-lg w-full h-full">
         <video id="localVideo" class="w-full h-full object-cover" autoplay playsinline muted></video>
-        <span class="absolute top-3 left-3 bg-black/60 text-white px-3 py-1 rounded-md text-xs md:text-sm font-semibold">You</span>
+        <span class="absolute top-3 left-3 bg-black/60 text-white px-3 py-1 rounded-md text-xs md:text-sm font-semibold z-10">You</span>
         
-        <div class="absolute bottom-3 left-3 flex gap-2">
+        <div class="absolute bottom-3 left-3 flex gap-2 z-10">
           <button id="muteMicBtn" class="bg-gray-800/90 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-xs md:text-sm font-medium border border-gray-600 transition shadow">Mute Mic</button>
           <button id="toggleCamBtn" class="bg-gray-800/90 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-xs md:text-sm font-medium border border-gray-600 transition shadow">Turn Off Cam</button>
         </div>
       </div>
 
-      <!-- Remote Stream Video Container -->
-      <div id="remoteVideoContainer" class="relative bg-gray-800 rounded-xl overflow-hidden border border-gray-700 flex items-center justify-center shadow-lg">
+      <!-- Remote Stream Video -->
+      <div class="relative bg-gray-800 rounded-xl overflow-hidden border border-gray-700 flex items-center justify-center shadow-lg w-full h-full">
         <video id="remoteVideo" class="w-full h-full object-cover" autoplay playsinline></video>
-        <span class="absolute top-3 left-3 bg-black/60 text-white px-3 py-1 rounded-md text-xs md:text-sm font-semibold">Partner</span>
-        
-        <!-- Fullscreen Button -->
-        <button id="fullScreenBtn" class="absolute top-3 right-3 bg-black/60 hover:bg-black/80 text-white px-3 py-1 rounded-md text-xs md:text-sm font-semibold border border-gray-600 transition">
-          ⛶ Fullscreen
-        </button>
+        <span class="absolute top-3 left-3 bg-black/60 text-white px-3 py-1 rounded-md text-xs md:text-sm font-semibold z-10">Partner</span>
 
-        <div class="absolute bottom-3 left-3 right-3 flex gap-2">
+        <div class="absolute bottom-3 left-3 right-3 flex gap-2 z-10">
           <input id="chatInput" type="text" placeholder="Connect with a partner to chat..." disabled class="flex-1 bg-gray-900/90 text-white px-4 py-2.5 rounded-lg text-sm border border-gray-600 focus:outline-none focus:border-blue-500 disabled:opacity-50 shadow">
           <button id="sendBtn" disabled class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition disabled:opacity-50 shadow">Send</button>
         </div>

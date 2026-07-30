@@ -44,7 +44,7 @@ const nextBtn = document.getElementById('nextBtn');
 const statusText = document.getElementById('status');
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
-const remoteVideoContainer = document.getElementById('remoteVideoContainer');
+const fullScreenContainer = document.getElementById('fullScreenContainer');
 const fullScreenBtn = document.getElementById('fullScreenBtn');
 
 const muteMicBtn = document.getElementById('muteMicBtn');
@@ -62,18 +62,18 @@ const disconnectSound = document.getElementById('disconnectSound');
 function playSound(audioEl) {
   if (audioEl) {
     audioEl.currentTime = 0;
-    audioEl.play().catch(() => {}); // Browser policy fallback
+    audioEl.play().catch(() => {});
   }
 }
 
-/* Fullscreen Toggle */
-if (fullScreenBtn && remoteVideoContainer) {
+/* Dual-Screen Fullscreen Toggle */
+if (fullScreenBtn && fullScreenContainer) {
   fullScreenBtn.addEventListener('click', () => {
     if (!document.fullscreenElement) {
-      if (remoteVideoContainer.requestFullscreen) {
-        remoteVideoContainer.requestFullscreen();
-      } else if (remoteVideoContainer.webkitRequestFullscreen) {
-        remoteVideoContainer.webkitRequestFullscreen(); // Safari
+      if (fullScreenContainer.requestFullscreen) {
+        fullScreenContainer.requestFullscreen();
+      } else if (fullScreenContainer.webkitRequestFullscreen) {
+        fullScreenContainer.webkitRequestFullscreen();
       }
     } else {
       if (document.exitFullscreen) {
@@ -335,7 +335,7 @@ socket.on('waiting', (msg) => {
 
 socket.on('match-found', async ({ roomId, isInitiator }) => {
   if (statusText) statusText.innerText = "Connected with a partner!";
-  playSound(connectSound); // 🔊 Play Connect Sound Effect
+  playSound(connectSound);
   
   currentRoomId = roomId;
   enableChat();
@@ -390,7 +390,7 @@ async function createPeerConnection() {
       const state = peerConnection.iceConnectionState;
       if (state === 'failed' || state === 'closed') {
         if (statusText) statusText.innerText = "Connection lost. Click Next/Start to reconnect.";
-        playSound(disconnectSound); // 🔊 Play Disconnect Sound Effect
+        playSound(disconnectSound);
         disableChat();
         if (remoteVideo) remoteVideo.srcObject = null;
       }
@@ -447,7 +447,7 @@ async function processPendingCandidates() {
 
 socket.on('peer-disconnected', () => {
   if (statusText) statusText.innerText = "Partner disconnected. Click Next/Start to search again.";
-  playSound(disconnectSound); // 🔊 Play Disconnect Sound Effect
+  playSound(disconnectSound);
   if (remoteVideo) remoteVideo.srcObject = null;
   disableChat();
   closePeerConnection();
