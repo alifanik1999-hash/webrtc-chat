@@ -26,8 +26,6 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-setPersistence(auth, browserLocalPersistence).catch(err => console.error(err));
-
 /* DOM Elements */
 const loggedOutUI = document.getElementById('loggedOutUI');
 const loggedInUI = document.getElementById('loggedInUI');
@@ -83,8 +81,15 @@ if (fullScreenBtn && fullScreenContainer) {
   });
 }
 
-/* Auth Logic */
-(async function handleRedirect() {
+/* Auth Logic with Robust Persistence & Redirect Handling */
+(async function initAuth() {
+  try {
+    await setPersistence(auth, browserLocalPersistence);
+  } catch (err) {
+    console.error("Persistence Error:", err);
+  }
+
+  // Handle redirect result for mobile/remote browsers
   try {
     const result = await getRedirectResult(auth);
     if (result && result.user) {
@@ -98,16 +103,26 @@ if (fullScreenBtn && fullScreenContainer) {
 if (loginBtn) {
   loginBtn.addEventListener('click', async () => {
     if (statusText) statusText.innerText = "Connecting to Google...";
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    try {
+      await setPersistence(auth, browserLocalPersistence);
+      provider.setCustomParameters({ prompt: 'select_account' });
 
-    if (isMobile) {
-      await signInWithRedirect(auth, provider);
-    } else {
-      try {
-        await signInWithPopup(auth, provider);
-      } catch (err) {
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      if (isMobile) {
         await signInWithRedirect(auth, provider);
+      } else {
+        try {
+          await signInWithPopup(auth, provider);
+        } catch (popupErr) {
+          console.warn("Popup blocked or failed, switching to redirect...", popupErr);
+          await signInWithRedirect(auth, provider);
+        }
       }
+    } catch (error) {
+      console.error("Login Error:", error);
+      alert("Sign-in failed: " + error.message);
     }
   });
 }
