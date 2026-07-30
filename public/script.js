@@ -423,15 +423,11 @@ async function createPeerConnection() {
       remoteVideo.setAttribute('playsinline', 'true');
       remoteVideo.muted = false;
       
-      const playPromise = remoteVideo.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(error => {
-          console.warn("Autoplay blocked, attempting user-gesture recovery:", error);
-          document.addEventListener('click', () => {
-            remoteVideo.play().catch(e => console.log("Manual play failed:", e));
-          }, { once: true });
-        });
-      }
+      remoteVideo.play().catch(error => {
+        if (error.name !== 'AbortError') {
+          console.warn("Video play error:", error);
+        }
+      });
     }
   };
 }
