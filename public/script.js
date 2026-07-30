@@ -113,15 +113,21 @@ const rtcConfig = {
       username: "d2d148e6efef2cfd01e1471d",
       credential: "7gA+e532a/4Q9H2d"
     }
-  ]
+  ],
+  iceCandidatePoolSize: 10
 };
 
+/* Noise Reduction & Clear Audio Setup */
 async function startLocalMedia() {
   if (!localStream) {
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ 
         video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }, 
-        audio: true 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
       });
       if (localVideo) {
         localVideo.srcObject = localStream;
@@ -291,7 +297,7 @@ function disableChat() {
   if (sendBtn) sendBtn.disabled = true;
 }
 
-/* WebRTC Signaling Logic */
+/* WebRTC Signaling & Connection Stability Logic */
 async function createPeerConnection() {
   closePeerConnection();
   peerConnection = new RTCPeerConnection(rtcConfig);
@@ -304,6 +310,18 @@ async function createPeerConnection() {
   peerConnection.onicecandidate = (event) => {
     if (event.candidate && currentRoomId) {
       socket.emit('signal', { roomId: currentRoomId, signal: { candidate: event.candidate } });
+    }
+  };
+
+  /* Connection Disconnect Auto Handler */
+  peerConnection.oniceconnectionstatechange = () => {
+    if (peerConnection) {
+      const state = peerConnection.iceConnectionState;
+      if (state === 'failed' || state === 'closed') {
+        if (statusText) statusText.innerText = "Connection lost. Click Next/Start to reconnect.";
+        disableChat();
+        if (remoteVideo) remoteVideo.srcObject = null;
+      }
     }
   };
 
@@ -368,6 +386,7 @@ function closePeerConnection() {
   if (peerConnection) {
     peerConnection.ontrack = null;
     peerConnection.onicecandidate = null;
+    peerConnection.oniceconnectionstatechange = null;
     peerConnection.close();
     peerConnection = null;
   }
