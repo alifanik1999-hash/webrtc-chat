@@ -81,7 +81,7 @@ if (fullScreenBtn && fullScreenContainer) {
   });
 }
 
-/* Auth Logic with Robust Persistence & Redirect Handling */
+/* Auth Logic */
 (async function initAuth() {
   try {
     await setPersistence(auth, browserLocalPersistence);
@@ -102,25 +102,20 @@ if (fullScreenBtn && fullScreenContainer) {
 if (loginBtn) {
   loginBtn.addEventListener('click', async () => {
     if (statusText) statusText.innerText = "Connecting to Google...";
-    
     try {
       await setPersistence(auth, browserLocalPersistence);
       provider.setCustomParameters({ prompt: 'select_account' });
-
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
       if (isMobile) {
         await signInWithRedirect(auth, provider);
       } else {
         try {
           await signInWithPopup(auth, provider);
         } catch (popupErr) {
-          console.warn("Popup blocked or failed, switching to redirect...", popupErr);
           await signInWithRedirect(auth, provider);
         }
       }
     } catch (error) {
-      console.error("Login Error:", error);
       alert("Sign-in failed: " + error.message);
     }
   });
@@ -174,10 +169,14 @@ let peerConnection = null;
 let currentRoomId = null;
 let pendingCandidates = [];
 
+/* Robust WebRTC Configuration with Multiple Global STUN Servers */
 const rtcConfig = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
     {
       urls: "turn:talk-with-world.metered.live:80",
       username: "d2d148e6efef2cfd01e1471d",
@@ -185,11 +184,6 @@ const rtcConfig = {
     },
     {
       urls: "turn:talk-with-world.metered.live:443",
-      username: "d2d148e6efef2cfd01e1471d",
-      credential: "7gA+e532a/4Q9H2d"
-    },
-    {
-      urls: "turn:talk-with-world.metered.live:443?transport=tcp",
       username: "d2d148e6efef2cfd01e1471d",
       credential: "7gA+e532a/4Q9H2d"
     }
@@ -202,7 +196,7 @@ async function startLocalMedia() {
   if (!localStream) {
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }, 
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" }, 
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
@@ -280,8 +274,6 @@ if (reportBtn) {
         stopConnection();
         socket.emit('next-user');
       }
-    } else {
-      alert("No active partner to report.");
     }
   });
 }
@@ -295,7 +287,7 @@ socket.on('online-users-count', (count) => {
   if (onlineCountDisplay) onlineCountDisplay.innerText = count;
 });
 
-/* Controls Logic */
+/* Match Controls */
 if (startBtn) {
   startBtn.addEventListener('click', async () => {
     await startLocalMedia();
@@ -334,13 +326,11 @@ if (nextBtn) {
     closePeerConnection();
     if (statusText) statusText.innerText = "Searching for new partner...";
     disableChat();
-    
     if (stopBtn) stopBtn.disabled = false;
     socket.emit('next-user');
   });
 }
 
-/* Socket Listeners */
 socket.on('start-rematch', ({ country }) => {
   socket.emit('find-match', { country });
 });
@@ -360,11 +350,14 @@ socket.on('match-found', async ({ roomId, isInitiator }) => {
 
   if (isInitiator) {
     try {
-      const offer = await peerConnection.createOffer();
+      const offer = await peerConnection.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true
+      });
       await peerConnection.setLocalDescription(offer);
       socket.emit('signal', { roomId: currentRoomId, signal: offer });
     } catch (err) {
-      console.error(err);
+      console.error("Offer creation error:", err);
     }
   }
 });
@@ -386,14 +379,16 @@ function disableChat() {
   if (sendBtn) sendBtn.disabled = true;
 }
 
-/* Peer Connection Management */
+/* Peer Connection Management & Track Binding */
 async function createPeerConnection() {
   closePeerConnection();
   peerConnection = new RTCPeerConnection(rtcConfig);
   pendingCandidates = [];
 
   if (localStream) {
-    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+    localStream.getTracks().forEach(track => {
+      peerConnection.addTrack(track, localStream);
+    });
   }
 
   peerConnection.onicecandidate = (event) => {
@@ -405,46 +400,44 @@ async function createPeerConnection() {
   peerConnection.oniceconnectionstatechange = () => {
     if (peerConnection) {
       const state = peerConnection.iceConnectionState;
-      if (state === 'failed' || state === 'closed') {
-        if (statusText) statusText.innerText = "Connection lost. Click Next/Start to reconnect.";
+      console.log("ICE Connection State:", state);
+      if (state === 'failed' || state === 'disconnected' || state === 'closed') {
+        if (statusText) statusText.innerText = "Connection lost. Click Next to reconnect.";
         playSound(disconnectSound);
-        disableChat();
-        if (remoteVideo) remoteVideo.srcObject = null;
       }
     }
   };
 
+  /* Ultra-Stable Remote Track Handler */
   peerConnection.ontrack = (event) => {
-    if (remoteVideo) {
-      console.log("Remote track received:", event.track.kind);
-      
-      let inboundStream = remoteVideo.srcObject;
-      if (!inboundStream || !(inboundStream instanceof MediaStream)) {
-        inboundStream = new MediaStream();
-        remoteVideo.srcObject = inboundStream;
-      }
-      
-      if (!inboundStream.getTracks().includes(event.track)) {
-        inboundStream.addTrack(event.track);
-      }
-
-      remoteVideo.setAttribute('playsinline', 'true');
-      remoteVideo.muted = false;
-      
-      const playVideo = async () => {
-        try {
-          if (remoteVideo.paused) {
-            await remoteVideo.play();
-          }
-        } catch (error) {
-          if (error.name !== 'AbortError') {
-            console.warn("Video play error:", error);
-          }
-        }
-      };
-      
-      playVideo();
+    console.log("Remote track received:", event.track.kind);
+    
+    let inboundStream = remoteVideo.srcObject;
+    if (!inboundStream || !(inboundStream instanceof MediaStream)) {
+      inboundStream = new MediaStream();
+      remoteVideo.srcObject = inboundStream;
     }
+
+    if (!inboundStream.getTracks().includes(event.track)) {
+      inboundStream.addTrack(event.track);
+    }
+
+    remoteVideo.setAttribute('playsinline', 'true');
+    remoteVideo.muted = false;
+
+    const playRemoteVideo = async () => {
+      try {
+        if (remoteVideo.paused) {
+          await remoteVideo.play();
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.warn("Remote video play warning:", err);
+        }
+      }
+    };
+
+    playRemoteVideo();
   };
 }
 
@@ -453,15 +446,23 @@ socket.on('signal', async ({ signal }) => {
 
   try {
     if (signal.type === 'offer') {
+      if (peerConnection.signalingState !== "stable") {
+        await peerConnection.setLocalDescription({type: "rollback"}).catch(() => {});
+      }
       await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
       await processPendingCandidates();
+      
       const answer = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answer);
       socket.emit('signal', { roomId: currentRoomId, signal: answer });
-    } else if (signal.type === 'answer') {
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
-      await processPendingCandidates();
-    } else if (signal.candidate) {
+    } 
+    else if (signal.type === 'answer') {
+      if (peerConnection.signalingState === "have-local-offer") {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
+        await processPendingCandidates();
+      }
+    } 
+    else if (signal.candidate) {
       const candidate = new RTCIceCandidate(signal.candidate);
       if (peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
         await peerConnection.addIceCandidate(candidate);
@@ -470,19 +471,23 @@ socket.on('signal', async ({ signal }) => {
       }
     }
   } catch (err) {
-    console.error(err);
+    console.error("Signaling error:", err);
   }
 });
 
 async function processPendingCandidates() {
   while (pendingCandidates.length > 0) {
     const candidate = pendingCandidates.shift();
-    await peerConnection.addIceCandidate(candidate);
+    try {
+      await peerConnection.addIceCandidate(candidate);
+    } catch (e) {
+      console.error("Error adding pending ICE candidate", e);
+    }
   }
 }
 
 socket.on('peer-disconnected', () => {
-  if (statusText) statusText.innerText = "Partner disconnected. Click Next/Start to search again.";
+  if (statusText) statusText.innerText = "Partner disconnected. Click Next to search again.";
   playSound(disconnectSound);
   if (remoteVideo) remoteVideo.srcObject = null;
   disableChat();
@@ -496,7 +501,9 @@ function closePeerConnection() {
     peerConnection.ontrack = null;
     peerConnection.onicecandidate = null;
     peerConnection.oniceconnectionstatechange = null;
-    peerConnection.close();
+    try {
+      peerConnection.close();
+    } catch (e) {}
     peerConnection = null;
   }
 }
