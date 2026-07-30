@@ -53,6 +53,7 @@ io.on('connection', (socket) => {
         socket.emit('match-found', { roomId, isInitiator: true });
         partnerSocket.emit('match-found', { roomId, isInitiator: false });
       } else {
+        // যদি পার্টনার অলরেডি ডিসকানেক্ট হয়ে থাকে, তবে বর্তমান ইউজারকে কিউতে যুক্ত করুন
         waitingQueue.push({ socketId: socket.id, country });
         socket.emit('waiting', `Searching for a partner from ${country}...`);
       }
@@ -67,7 +68,7 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('signal', { signal });
   });
 
-  // ৫. মেসেজ পাঠানো
+  // ৫. মেসেজ পাঠানো
   socket.on('send-message', ({ roomId, message }) => {
     socket.to(roomId).emit('receive-message', { message });
   });
