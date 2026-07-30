@@ -5,6 +5,8 @@ import {
   signInWithPopup, 
   signInWithRedirect,
   getRedirectResult,
+  setPersistence,
+  browserLocalPersistence,
   signOut, 
   onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -23,6 +25,9 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
+
+// Local Persistence নিশ্চিত করা যাতে পেজ রিফ্রেশ হলেও লগইন না চলে যায়
+setPersistence(auth, browserLocalPersistence).catch(err => console.error(err));
 
 /* DOM Elements */
 const loggedOutUI = document.getElementById('loggedOutUI');
@@ -47,37 +52,45 @@ const countrySelect = document.getElementById('countrySelect');
 const chatInput = document.getElementById('chatInput');
 const sendBtn = document.getElementById('sendBtn');
 
-/* Cross-Device Universal Authentication Handler */
+/* Page Load-এ Redirect Result আগে চেক করা */
+(async function handleRedirect() {
+  try {
+    const result = await getRedirectResult(auth);
+    if (result && result.user) {
+      updateUIForUser(result.user);
+    }
+  } catch (error) {
+    console.error("Redirect Login Error:", error);
+  }
+})();
+
+/* Sign-In Handler */
 if (loginBtn) {
   loginBtn.addEventListener('click', async () => {
+    if (statusText) statusText.innerText = "Connecting to Google...";
+    
+    // মোবাইল কি না চেক করা
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    try {
-      if (statusText) statusText.innerText = "Signing in...";
-      if (isMobile) {
-        // মোবাইলে সেফ রিডাইরেক্ট
-        await signInWithRedirect(auth, provider);
-      } else {
-        // ডেস্কে টপে পপআপ
-        await signInWithPopup(auth, provider);
-      }
-    } catch (error) {
-      console.warn("Primary login failed, trying fallback...", error);
+
+    if (isMobile) {
+      // মোবাইলের জন্য সরাসরি Redirect
+      await signInWithRedirect(auth, provider);
+    } else {
+      // কম্পিউটারের জন্য Popup, ফেল করলে Redirect
       try {
-        await signInWithRedirect(auth, provider);
+        await signInWithPopup(auth, provider);
       } catch (err) {
-        alert("Login failed: " + err.message);
+        await signInWithRedirect(auth, provider);
       }
     }
   });
 }
 
-getRedirectResult(auth).catch((error) => console.error("Redirect Error:", error));
-
 if (logoutBtn) {
   logoutBtn.addEventListener('click', () => signOut(auth));
 }
 
-onAuthStateChanged(auth, async (user) => {
+function updateUIForUser(user) {
   if (user) {
     if (loggedOutUI) loggedOutUI.classList.add('hidden');
     if (loggedInUI) loggedInUI.classList.remove('hidden');
@@ -89,7 +102,7 @@ onAuthStateChanged(auth, async (user) => {
     if (nextBtn) nextBtn.disabled = true;
     
     if (statusText) statusText.innerText = "Click Start to find a partner!";
-    await startLocalMedia();
+    startLocalMedia();
   } else {
     if (loggedOutUI) loggedOutUI.classList.remove('hidden');
     if (loggedInUI) loggedInUI.classList.add('hidden');
@@ -100,6 +113,10 @@ onAuthStateChanged(auth, async (user) => {
     
     if (statusText) statusText.innerText = "Please sign in with Google to start";
   }
+}
+
+onAuthStateChanged(auth, (user) => {
+  updateUIForUser(user);
 });
 
 /* Socket & WebRTC Setup */
