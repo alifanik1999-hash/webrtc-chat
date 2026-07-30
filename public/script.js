@@ -419,7 +419,9 @@ async function createPeerConnection() {
       console.log("Remote track received:", event.track.kind);
       
       if (event.streams && event.streams[0]) {
-        remoteVideo.srcObject = event.streams[0];
+        if (remoteVideo.srcObject !== event.streams[0]) {
+          remoteVideo.srcObject = event.streams[0];
+        }
       } else {
         let inboundStream = remoteVideo.srcObject;
         if (!inboundStream) {
@@ -432,15 +434,19 @@ async function createPeerConnection() {
       remoteVideo.setAttribute('playsinline', 'true');
       remoteVideo.muted = false;
       
-      const playPromise = remoteVideo.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(error => {
-          console.log("Autoplay prevented, trying manual play interaction...", error);
-          document.addEventListener('click', () => {
-            remoteVideo.play().catch(e => console.log("Manual play failed:", e));
-          }, { once: true });
-        });
-      }
+      const playVideo = async () => {
+        try {
+          if (remoteVideo.paused) {
+            await remoteVideo.play();
+          }
+        } catch (error) {
+          if (error.name !== 'AbortError') {
+            console.warn("Video play error:", error);
+          }
+        }
+      };
+      
+      playVideo();
     }
   };
 }
