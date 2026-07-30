@@ -134,7 +134,7 @@ function updateUIForUser(user) {
   if (user) {
     if (loggedOutUI) loggedOutUI.classList.add('hidden');
     if (loggedInUI) loggedInUI.classList.remove('hidden');
-    if (loginBtn) loginBtn.style.display = 'none'; // মোবাইল ও ডেস্কটপে সাইন ইন হলে বাটন হাইড হবে
+    if (loginBtn) loginBtn.style.display = 'none';
     
     if (userNameDisplay) userNameDisplay.innerText = user.displayName || 'User';
     if (userPhotoDisplay) userPhotoDisplay.src = user.photoURL || 'https://via.placeholder.com/32';
@@ -148,7 +148,7 @@ function updateUIForUser(user) {
   } else {
     if (loggedOutUI) loggedOutUI.classList.remove('hidden');
     if (loggedInUI) loggedInUI.classList.add('hidden');
-    if (loginBtn) loginBtn.style.display = 'block'; // লগআউট অবস্থায় বাটন দেখাবে
+    if (loginBtn) loginBtn.style.display = 'block';
     
     if (startBtn) startBtn.disabled = true;
     if (stopBtn) stopBtn.disabled = true;
@@ -416,21 +416,31 @@ async function createPeerConnection() {
 
   peerConnection.ontrack = (event) => {
     if (remoteVideo) {
+      console.log("Remote track received:", event.track.kind);
+      
       if (event.streams && event.streams[0]) {
         remoteVideo.srcObject = event.streams[0];
       } else {
-        const stream = new MediaStream();
-        stream.addTrack(event.track);
-        remoteVideo.srcObject = stream;
+        let inboundStream = remoteVideo.srcObject;
+        if (!inboundStream) {
+          inboundStream = new MediaStream();
+          remoteVideo.srcObject = inboundStream;
+        }
+        inboundStream.addTrack(event.track);
       }
+
       remoteVideo.setAttribute('playsinline', 'true');
       remoteVideo.muted = false;
       
-      remoteVideo.play().catch(error => {
-        if (error.name !== 'AbortError') {
-          console.warn("Video play error:", error);
-        }
-      });
+      const playPromise = remoteVideo.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.log("Autoplay prevented, trying manual play interaction...", error);
+          document.addEventListener('click', () => {
+            remoteVideo.play().catch(e => console.log("Manual play failed:", e));
+          }, { once: true });
+        });
+      }
     }
   };
 }
