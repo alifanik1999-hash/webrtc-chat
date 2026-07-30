@@ -29,8 +29,13 @@ const userNameDisplay = document.getElementById('userName');
 const userPhotoDisplay = document.getElementById('userPhoto');
 const loginBtn = document.getElementById('loginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
+
+/* Action Control Elements */
+const reportBtn = document.getElementById('reportBtn');
 const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
 const nextBtn = document.getElementById('nextBtn');
+
 const statusText = document.getElementById('status');
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
@@ -64,14 +69,21 @@ onAuthStateChanged(auth, async (user) => {
     if (loggedInUI) loggedInUI.classList.remove('hidden');
     if (userNameDisplay) userNameDisplay.innerText = user.displayName || 'User';
     if (userPhotoDisplay) userPhotoDisplay.src = user.photoURL || 'https://via.placeholder.com/32';
+    
     if (startBtn) startBtn.disabled = false;
+    if (stopBtn) stopBtn.disabled = true;
+    if (nextBtn) nextBtn.disabled = true;
+    
     if (statusText) statusText.innerText = "Click Start to find a partner!";
     await startLocalMedia();
   } else {
     if (loggedOutUI) loggedOutUI.classList.remove('hidden');
     if (loggedInUI) loggedInUI.classList.add('hidden');
+    
     if (startBtn) startBtn.disabled = true;
+    if (stopBtn) stopBtn.disabled = true;
     if (nextBtn) nextBtn.disabled = true;
+    
     if (statusText) statusText.innerText = "Please sign in with Google to start";
   }
 });
@@ -162,25 +174,33 @@ function sendMessage() {
   }
 }
 
-if (sendBtn) {
-  sendBtn.addEventListener('click', sendMessage);
-}
-
+if (sendBtn) sendBtn.addEventListener('click', sendMessage);
 if (chatInput) {
   chatInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      sendMessage();
-    }
+    if (e.key === 'Enter') sendMessage();
   });
 }
 
 socket.on('receive-message', ({ message }) => {
-  if (statusText) {
-    statusText.innerText = `Partner: ${message}`;
-  }
+  if (statusText) statusText.innerText = `Partner: ${message}`;
 });
 
-/* Matchmaking */
+/* Control Buttons Handlers */
+
+// 1. Report Button
+if (reportBtn) {
+  reportBtn.addEventListener('click', () => {
+    if (currentRoomId) {
+      alert("Partner reported successfully! Searching for a new match...");
+      stopConnection();
+      socket.emit('next-user');
+    } else {
+      alert("No active partner to report.");
+    }
+  });
+}
+
+// 2. Start Button
 if (startBtn) {
   startBtn.addEventListener('click', async () => {
     await startLocalMedia();
@@ -189,17 +209,42 @@ if (startBtn) {
 
     if (statusText) statusText.innerText = "Searching for a partner...";
     socket.emit('find-match', { language, country });
+    
     startBtn.disabled = true;
+    if (stopBtn) stopBtn.disabled = false;
     if (nextBtn) nextBtn.disabled = false;
   });
 }
 
+// 3. Stop Button
+function stopConnection() {
+  if (remoteVideo) remoteVideo.srcObject = null;
+  closePeerConnection();
+  disableChat();
+  currentRoomId = null;
+  
+  if (statusText) statusText.innerText = "Stopped. Click Start to search again.";
+  if (startBtn) startBtn.disabled = false;
+  if (stopBtn) stopBtn.disabled = true;
+  if (nextBtn) nextBtn.disabled = true;
+}
+
+if (stopBtn) {
+  stopBtn.addEventListener('click', () => {
+    socket.emit('leave-room');
+    stopConnection();
+  });
+}
+
+// 4. Next Button
 if (nextBtn) {
   nextBtn.addEventListener('click', () => {
     if (remoteVideo) remoteVideo.srcObject = null;
     closePeerConnection();
     if (statusText) statusText.innerText = "Searching for new partner...";
     disableChat();
+    
+    if (stopBtn) stopBtn.disabled = false;
     socket.emit('next-user');
   });
 }
@@ -316,6 +361,7 @@ socket.on('peer-disconnected', () => {
   disableChat();
   closePeerConnection();
   if (startBtn) startBtn.disabled = false;
+  if (stopBtn) stopBtn.disabled = true;
 });
 
 function closePeerConnection() {

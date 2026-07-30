@@ -1,86 +1,114 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>1-on-1 Video Chat</title>
-  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="/socket.io/socket.io.js"></script>
 </head>
-<body>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col justify-between font-sans">
 
-  <!-- Header Section -->
-  <header class="header">
-    <h1 class="logo">1-on-1 Video Chat</h1>
+  <!-- Header -->
+  <header class="flex justify-between items-center p-4 bg-gray-800 border-b border-gray-700">
+    <h1 class="text-xl font-bold text-blue-400">1-on-1 Video Chat</h1>
     
+    <!-- Auth UI -->
     <div id="loggedOutUI">
-      <button id="loginBtn" class="btn btn-google">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
-        Login with Google
+      <button id="loginBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition">
+        Sign in with Google
       </button>
     </div>
 
-    <div id="loggedInUI" class="user-profile hidden">
-      <img id="userPhoto" src="" alt="User Avatar" class="avatar">
-      <span id="userName" class="user-name"></span>
-      <button id="logoutBtn" class="btn btn-danger">Logout</button>
+    <div id="loggedInUI" class="hidden flex items-center gap-3">
+      <img id="userPhoto" class="w-8 h-8 rounded-full border border-gray-500" src="" alt="User">
+      <span id="userName" class="text-sm font-medium"></span>
+      <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm transition">
+        Logout
+      </button>
     </div>
   </header>
 
-  <!-- Status Bar -->
-  <div class="status-container">
-    <span id="status" class="status-badge">Please sign in with Google to start</span>
-  </div>
-
-  <!-- Video Grid -->
-  <main class="video-container">
-    <!-- Local Video -->
-    <div class="video-box">
-      <span class="video-label">You</span>
-      <video id="localVideo" autoplay playsinline muted></video>
-      <div class="controls-overlay">
-        <button id="muteMicBtn" class="btn-ctrl">Mute Mic</button>
-        <button id="toggleCamBtn" class="btn-ctrl">Turn Off Cam</button>
-      </div>
+  <!-- Main Content -->
+  <main class="flex-1 flex flex-col items-center justify-center p-4 max-w-6xl mx-auto w-full">
+    
+    <!-- Status Indicator -->
+    <div class="mb-4">
+      <span id="status" class="bg-gray-800 text-blue-300 border border-gray-700 text-sm px-4 py-2 rounded-full font-semibold">
+        Please sign in with Google to start
+      </span>
     </div>
 
-    <!-- Remote Video -->
-    <div class="video-box">
-      <span class="video-label">Partner</span>
-      <video id="remoteVideo" autoplay playsinline></video>
-      <div class="chat-overlay">
-        <input type="text" id="chatInput" placeholder="Connect with a partner to chat..." disabled>
-        <button id="sendBtn" class="btn btn-primary" disabled>Send</button>
+    <!-- Video Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full h-[55vh] md:h-[60vh]">
+      
+      <!-- Local Video Container -->
+      <div class="relative bg-gray-800 rounded-lg overflow-hidden border border-gray-700 flex items-center justify-center">
+        <video id="localVideo" class="w-full h-full object-cover" autoplay playsinline muted></video>
+        <span class="absolute top-2 left-2 bg-black/60 px-2 py-1 rounded text-xs">You</span>
+        
+        <!-- Local Media Controls -->
+        <div class="absolute bottom-2 left-2 flex gap-2">
+          <button id="muteMicBtn" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-xs transition">Mute Mic</button>
+          <button id="toggleCamBtn" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-xs transition">Turn Off Cam</button>
+        </div>
       </div>
+
+      <!-- Remote Video Container -->
+      <div class="relative bg-gray-800 rounded-lg overflow-hidden border border-gray-700 flex items-center justify-center">
+        <video id="remoteVideo" class="w-full h-full object-cover" autoplay playsinline></video>
+        <span class="absolute top-2 left-2 bg-black/60 px-2 py-1 rounded text-xs">Partner</span>
+        
+        <!-- Chat Overlay Input -->
+        <div class="absolute bottom-2 left-2 right-2 flex gap-2">
+          <input id="chatInput" type="text" placeholder="Connect with a partner to chat..." disabled class="flex-1 bg-gray-900/80 text-white px-3 py-2 rounded text-sm border border-gray-600 focus:outline-none focus:border-blue-500 disabled:opacity-50">
+          <button id="sendBtn" disabled class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-semibold transition disabled:opacity-50">Send</button>
+        </div>
+      </div>
+
     </div>
+
+    <!-- Control Buttons Panel -->
+    <div class="w-full flex flex-wrap items-center justify-between mt-6 bg-gray-800 p-4 rounded-lg border border-gray-700 gap-4">
+      
+      <!-- Filters (Left) -->
+      <div class="flex items-center gap-3">
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Language:</label>
+          <select id="languageSelect" class="bg-gray-900 text-white px-3 py-1.5 rounded text-sm outline-none border border-gray-700">
+            <option value="English">English</option>
+            <option value="Bengali">Bengali</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Country:</label>
+          <select id="countrySelect" class="bg-gray-900 text-white px-3 py-1.5 rounded text-sm outline-none border border-gray-700">
+            <option value="Global">Global (All Countries)</option>
+            <option value="Bangladesh">Bangladesh</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Action Buttons (Right) -->
+      <div class="flex items-center gap-2">
+        <button id="reportBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-sm transition">
+          🚩 Report
+        </button>
+        <button id="startBtn" disabled class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded text-sm transition disabled:opacity-50">
+          ► START
+        </button>
+        <button id="stopBtn" disabled class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-5 rounded text-sm transition disabled:opacity-50">
+          ⏹ STOP
+        </button>
+        <button id="nextBtn" disabled class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded text-sm transition disabled:opacity-50">
+          NEXT ➔
+        </button>
+      </div>
+
+    </div>
+
   </main>
-
-  <!-- Control Bar (Bottom) -->
-  <footer class="control-bar">
-    <div class="select-group">
-      <label>Language:</label>
-      <select id="languageSelect">
-        <option value="English">English</option>
-        <option value="Bengali">Bengali</option>
-        <option value="Hindi">Hindi</option>
-      </select>
-    </div>
-
-    <div class="select-group">
-      <label>Country:</label>
-      <select id="countrySelect">
-        <option value="Global">Global (All Countries)</option>
-        <option value="Bangladesh">Bangladesh</option>
-        <option value="India">India</option>
-        <option value="USA">USA</option>
-      </select>
-    </div>
-
-    <div class="action-buttons">
-      <button id="startBtn" class="btn btn-success" disabled>► START</button>
-      <button id="nextBtn" class="btn btn-secondary" disabled>NEXT ➔</button>
-    </div>
-  </footer>
 
   <script type="module" src="script.js"></script>
 </body>
