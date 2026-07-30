@@ -6,6 +6,23 @@
   <title>1-on-1 Video Chat</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/socket.io/socket.io.js"></script>
+
+  <!-- Messenger In-App Browser Auto-Redirect Script -->
+  <script>
+    (function() {
+      var ua = navigator.userAgent || navigator.vendor || window.opera;
+      var isFB = (ua.indexOf("FBAN") > -1) || (ua.indexOf("FBAV") > -1) || (ua.indexOf("Messenger") > -1);
+      
+      if (isFB) {
+        var currentUrl = window.location.href;
+        // Android-এর জন্য সরাসরি Chrome অ্যাপ ওপেন করার চেষ্টা
+        if (/Android/i.test(ua)) {
+          var chromeUrl = "intent://" + currentUrl.replace(/^https?:\/\//, '') + "#Intent;scheme=https;package=com.android.chrome;end";
+          window.location.href = chromeUrl;
+        }
+      }
+    })();
+  </script>
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex flex-col justify-between font-sans">
 
@@ -33,7 +50,7 @@
   <main class="flex-1 flex flex-col items-center justify-center p-4 max-w-6xl mx-auto w-full">
     
     <!-- Status Indicator -->
-    <div class="mb-4">
+    <div class="mb-4 text-center">
       <span id="status" class="bg-gray-800 text-blue-300 border border-gray-700 text-sm px-4 py-2 rounded-full font-semibold">
         Please sign in with Google to start
       </span>

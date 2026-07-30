@@ -2,7 +2,8 @@ import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.
 import { 
   getAuth, 
   GoogleAuthProvider, 
-  signInWithRedirect, 
+  signInWithPopup, 
+  signInWithRedirect,
   getRedirectResult,
   signOut, 
   onAuthStateChanged 
@@ -31,7 +32,6 @@ const userPhotoDisplay = document.getElementById('userPhoto');
 const loginBtn = document.getElementById('loginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 
-/* Control Elements */
 const reportBtn = document.getElementById('reportBtn');
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
@@ -44,26 +44,34 @@ const muteMicBtn = document.getElementById('muteMicBtn');
 const toggleCamBtn = document.getElementById('toggleCamBtn');
 const countrySelect = document.getElementById('countrySelect');
 
-/* Chat Elements */
 const chatInput = document.getElementById('chatInput');
 const sendBtn = document.getElementById('sendBtn');
 
-/* Auth Handlers (Mobile Friendly Redirect) */
+/* Cross-Device Universal Authentication Handler */
 if (loginBtn) {
   loginBtn.addEventListener('click', async () => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     try {
-      if (statusText) statusText.innerText = "Redirecting to Google Sign-in...";
-      await signInWithRedirect(auth, provider);
+      if (statusText) statusText.innerText = "Signing in...";
+      if (isMobile) {
+        // মোবাইলে সেফ রিডাইরেক্ট
+        await signInWithRedirect(auth, provider);
+      } else {
+        // ডেস্কে টপে পপআপ
+        await signInWithPopup(auth, provider);
+      }
     } catch (error) {
-      alert("Sign in error: " + error.message);
+      console.warn("Primary login failed, trying fallback...", error);
+      try {
+        await signInWithRedirect(auth, provider);
+      } catch (err) {
+        alert("Login failed: " + err.message);
+      }
     }
   });
 }
 
-// Handle Redirect Return
-getRedirectResult(auth).catch((error) => {
-  console.error("Redirect Login Error:", error);
-});
+getRedirectResult(auth).catch((error) => console.error("Redirect Error:", error));
 
 if (logoutBtn) {
   logoutBtn.addEventListener('click', () => signOut(auth));
@@ -94,8 +102,13 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-/* WebRTC & Socket Setup */
-const socket = io({ transports: ['websocket', 'polling'] });
+/* Socket & WebRTC Setup */
+const socket = io({ 
+  transports: ['websocket', 'polling'],
+  reconnection: true,
+  reconnectionAttempts: 10
+});
+
 let localStream = null;
 let peerConnection = null;
 let currentRoomId = null;
@@ -124,7 +137,7 @@ const rtcConfig = {
   iceCandidatePoolSize: 10
 };
 
-/* Noise Reduction & Audio Setup */
+/* Noise Suppression Audio Setup */
 async function startLocalMedia() {
   if (!localStream) {
     try {
@@ -150,7 +163,7 @@ async function startLocalMedia() {
 
 document.addEventListener('DOMContentLoaded', startLocalMedia);
 
-/* Mic and Camera Toggle */
+/* Controls */
 if (muteMicBtn) {
   muteMicBtn.addEventListener('click', () => {
     if (localStream) {
@@ -197,13 +210,11 @@ socket.on('receive-message', ({ message }) => {
   if (statusText) statusText.innerText = `Partner: ${message}`;
 });
 
-/* Control Action Handlers */
-
-// Report Button
+/* Matching Actions */
 if (reportBtn) {
   reportBtn.addEventListener('click', () => {
     if (currentRoomId) {
-      alert("Partner reported successfully! Searching for a new match...");
+      alert("Partner reported! Searching next...");
       stopConnection();
       socket.emit('next-user');
     } else {
@@ -212,12 +223,10 @@ if (reportBtn) {
   });
 }
 
-// Start Button
 if (startBtn) {
   startBtn.addEventListener('click', async () => {
     await startLocalMedia();
     const country = countrySelect ? countrySelect.value : 'Global';
-
     if (statusText) statusText.innerText = `Searching for a partner from ${country}...`;
     socket.emit('find-match', { country });
     
@@ -227,7 +236,6 @@ if (startBtn) {
   });
 }
 
-// Stop Function & Button
 function stopConnection() {
   if (remoteVideo) remoteVideo.srcObject = null;
   closePeerConnection();
@@ -247,7 +255,6 @@ if (stopBtn) {
   });
 }
 
-// Next Button
 if (nextBtn) {
   nextBtn.addEventListener('click', () => {
     if (remoteVideo) remoteVideo.srcObject = null;
@@ -260,7 +267,7 @@ if (nextBtn) {
   });
 }
 
-/* Socket Events */
+/* Socket Listeners */
 socket.on('start-rematch', ({ country }) => {
   socket.emit('find-match', { country });
 });
@@ -304,7 +311,7 @@ function disableChat() {
   if (sendBtn) sendBtn.disabled = true;
 }
 
-/* WebRTC Signaling & Connection Logic */
+/* WebRTC Signaling */
 async function createPeerConnection() {
   closePeerConnection();
   peerConnection = new RTCPeerConnection(rtcConfig);
