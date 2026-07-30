@@ -134,6 +134,8 @@ function updateUIForUser(user) {
   if (user) {
     if (loggedOutUI) loggedOutUI.classList.add('hidden');
     if (loggedInUI) loggedInUI.classList.remove('hidden');
+    if (loginBtn) loginBtn.style.display = 'none'; // মোবাইল ও ডেস্কটপে সাইন ইন হলে বাটন হাইড হবে
+    
     if (userNameDisplay) userNameDisplay.innerText = user.displayName || 'User';
     if (userPhotoDisplay) userPhotoDisplay.src = user.photoURL || 'https://via.placeholder.com/32';
     
@@ -146,6 +148,7 @@ function updateUIForUser(user) {
   } else {
     if (loggedOutUI) loggedOutUI.classList.remove('hidden');
     if (loggedInUI) loggedInUI.classList.add('hidden');
+    if (loginBtn) loginBtn.style.display = 'block'; // লগআউট অবস্থায় বাটন দেখাবে
     
     if (startBtn) startBtn.disabled = true;
     if (stopBtn) stopBtn.disabled = true;
