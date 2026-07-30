@@ -418,16 +418,13 @@ async function createPeerConnection() {
     if (remoteVideo) {
       console.log("Remote track received:", event.track.kind);
       
-      if (event.streams && event.streams[0]) {
-        if (remoteVideo.srcObject !== event.streams[0]) {
-          remoteVideo.srcObject = event.streams[0];
-        }
-      } else {
-        let inboundStream = remoteVideo.srcObject;
-        if (!inboundStream) {
-          inboundStream = new MediaStream();
-          remoteVideo.srcObject = inboundStream;
-        }
+      let inboundStream = remoteVideo.srcObject;
+      if (!inboundStream || !(inboundStream instanceof MediaStream)) {
+        inboundStream = new MediaStream();
+        remoteVideo.srcObject = inboundStream;
+      }
+      
+      if (!inboundStream.getTracks().includes(event.track)) {
         inboundStream.addTrack(event.track);
       }
 
