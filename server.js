@@ -8,9 +8,7 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const server = http.createServer(app);
 
-/* ==========================================
-   SECURITY CONFIGURATION
-   ========================================== */
+/* Security */
 app.use(
   helmet({
     contentSecurityPolicy: false,
@@ -20,23 +18,17 @@ app.use(
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 150,
-  message: 'Too many requests from this IP, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
+  max: 200,
+  message: 'Too many requests, try again later.',
 });
 
 app.use(limiter);
 app.use(express.static(path.join(__dirname, 'public')));
 
-/* ==========================================
-   SOCKET.IO LOGIC
-   ========================================== */
+/* Socket.io */
 const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
+  cors: { origin: "*", methods: ["GET", "POST"] },
+  transports: ['websocket', 'polling']
 });
 
 let waitingUsers = [];
@@ -44,70 +36,52 @@ let waitingUsers = [];
 function sanitizeInput(text) {
   if (typeof text !== 'string') return '';
   return text.replace(/[&<>"']/g, function (m) {
-    return {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#039;'
-    }[m];
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
   });
 }
 
 io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.id}`);
+  console.log(`Connected: ${socket.id}`);
 
-  socket.on('find-partner', (data = {}) => {
+  socket.on('find-match', (data = {}) => {
     waitingUsers = waitingUsers.filter(user => user.id !== socket.id);
 
     const userData = {
       id: socket.id,
       country: sanitizeInput(data.country || 'Global'),
-      name: sanitizeInput(data.name || 'Anonymous')
+      language: sanitizeInput(data.language || 'English')
     };
 
     if (waitingUsers.length > 0) {
       const partner = waitingUsers.pop();
-      socket.emit('partner-found', { partnerId: partner.id, partnerData: partner });
-      io.to(partner.id).emit('partner-found', { partnerId: socket.id, partnerData: userData });
+      const roomId = `room_${socket.id}_${partner.id}`;
+
+      socket.join(roomId);
+      partner.socket.join(roomId);
+
+      socket.emit('match-found', { roomId, isInitiator: true });
+      partner.socket.emit('match-found', { roomId, isInitiator: false });
     } else {
-      waitingUsers.push(userData);
-      socket.emit('waiting');
+      waitingUsers.push({ id: socket.id, socket, userData });
+      socket.emit('waiting', 'Searching for a partner...');
     }
   });
 
-  socket.on('signal', (data) => {
-    if (data && data.to) {
-      io.to(data.to).emit('signal', {
-        from: socket.id,
-        signal: data.signal
-      });
-    }
+  socket.on('signal', ({ roomId, signal }) => {
+    socket.to(roomId).emit('signal', { signal });
   });
 
-  // 👇 চ্যাট মেসেজ রিসেপশন ও ট্রান্সমিশন
-  socket.on('send-message', (data) => {
-    if (data && data.to && data.message) {
-      const cleanMessage = sanitizeInput(data.message);
-      io.to(data.to).emit('receive-message', {
-        message: cleanMessage,
-        from: socket.id
-      });
-    }
-  });
-
-  socket.on('leave-room', () => {
+  socket.on('next-user', () => {
     waitingUsers = waitingUsers.filter(user => user.id !== socket.id);
-    socket.broadcast.emit('partner-left', { partnerId: socket.id });
+    socket.broadcast.emit('peer-disconnected');
+    socket.emit('start-rematch', { language: 'English', country: 'Global' });
   });
 
   socket.on('disconnect', () => {
     waitingUsers = waitingUsers.filter(user => user.id !== socket.id);
-    socket.broadcast.emit('partner-left', { partnerId: socket.id });
+    socket.broadcast.emit('peer-disconnected');
   });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Server is running securely on port ${PORT}`);
-});
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

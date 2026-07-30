@@ -2,98 +2,86 @@
 <html lang="bn">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>1-on-1 Video Chat</title>
   <link rel="stylesheet" href="style.css">
   <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 
-  <!-- Navbar / Auth Section -->
-  <header class="navbar">
+  <!-- Header Section -->
+  <header class="header">
     <h1 class="logo">1-on-1 Video Chat</h1>
-    <div class="auth-container">
-      <div id="loggedOutUI">
-        <button id="loginBtn" class="btn btn-google">
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo"> Login with Google
-        </button>
-      </div>
-      <div id="loggedInUI" class="hidden">
-        <img id="userPhoto" class="user-avatar" src="" alt="User Photo">
-        <span id="userName" class="user-name">User</span>
-        <button id="logoutBtn" class="btn btn-logout">Logout</button>
-      </div>
+    
+    <div id="loggedOutUI">
+      <button id="loginBtn" class="btn btn-google">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+        Login with Google
+      </button>
+    </div>
+
+    <div id="loggedInUI" class="user-profile hidden">
+      <img id="userPhoto" src="" alt="User Avatar" class="avatar">
+      <span id="userName" class="user-name"></span>
+      <button id="logoutBtn" class="btn btn-danger">Logout</button>
     </div>
   </header>
 
-  <!-- Main Container -->
-  <main class="main-container">
-    <div class="status-bar">
-      <span id="status">Please sign in with Google to start</span>
-    </div>
+  <!-- Status Bar -->
+  <div class="status-container">
+    <span id="status" class="status-badge">Please sign in with Google to start</span>
+  </div>
 
-    <div class="video-grid">
-      <!-- Local Video -->
-      <div class="video-box">
-        <video id="localVideo" autoplay playsinline muted></video>
-        <div class="video-label">You</div>
-        <div class="controls-overlay">
-          <button id="toggleMicBtn" class="btn-control">Mute Mic</button>
-          <button id="toggleCamBtn" class="btn-control">Turn Off Cam</button>
-        </div>
-      </div>
-
-      <!-- Remote Video -->
-      <div class="video-box">
-        <video id="remoteVideo" autoplay playsinline></video>
-        <div class="video-label">
-          <span id="partnerFlag">🌐</span> <span id="partnerName">Partner</span>
-        </div>
-        <!-- Chat Overlay -->
-        <div class="chat-overlay">
-          <div id="chatMessages" class="chat-messages"></div>
-          <form id="chatForm" class="chat-form">
-            <input type="text" id="chatInput" placeholder="Connect with a partner to chat..." disabled autocomplete="off">
-            <button type="submit" id="sendBtn" disabled>Send</button>
-          </form>
-        </div>
+  <!-- Video Grid -->
+  <main class="video-container">
+    <!-- Local Video -->
+    <div class="video-box">
+      <span class="video-label">You</span>
+      <video id="localVideo" autoplay playsinline muted></video>
+      <div class="controls-overlay">
+        <button id="muteMicBtn" class="btn-ctrl">Mute Mic</button>
+        <button id="toggleCamBtn" class="btn-ctrl">Turn Off Cam</button>
       </div>
     </div>
 
-    <!-- Bottom Controls -->
-    <div class="bottom-bar">
-      <div class="filter-group">
-        <div class="filter-item">
-          <label for="languageSelect">Language:</label>
-          <select id="languageSelect">
-            <option value="English">English</option>
-            <option value="Bangla">Bangla 🇧🇩</option>
-            <option value="Hindi">Hindi 🇮🇳</option>
-          </select>
-        </div>
-
-        <div class="filter-item">
-          <label for="countrySelect">Country:</label>
-          <select id="countrySelect">
-            <option value="Global">Global (All Countries)</option>
-            <option value="BD">Bangladesh 🇧🇩</option>
-            <option value="IN">India 🇮🇳</option>
-            <option value="US">USA 🇺🇸</option>
-            <option value="UK">UK 🇬🇧</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="action-buttons">
-        <button id="reportBtn" class="btn btn-report" disabled>🚩 Report</button>
-        <button id="startBtn" class="btn btn-start" disabled>▶ START</button>
-        <button id="stopBtn" class="btn btn-stop hidden">⏹ STOP</button>
-        <button id="nextBtn" class="btn btn-next" disabled>NEXT ➔</button>
+    <!-- Remote Video -->
+    <div class="video-box">
+      <span class="video-label">Partner</span>
+      <video id="remoteVideo" autoplay playsinline></video>
+      <div class="chat-overlay">
+        <input type="text" id="chatInput" placeholder="Connect with a partner to chat..." disabled>
+        <button id="sendBtn" class="btn btn-primary" disabled>Send</button>
       </div>
     </div>
   </main>
 
-  <!-- ES Modules Integration -->
+  <!-- Control Bar (Bottom) -->
+  <footer class="control-bar">
+    <div class="select-group">
+      <label>Language:</label>
+      <select id="languageSelect">
+        <option value="English">English</option>
+        <option value="Bengali">Bengali</option>
+        <option value="Hindi">Hindi</option>
+      </select>
+    </div>
+
+    <div class="select-group">
+      <label>Country:</label>
+      <select id="countrySelect">
+        <option value="Global">Global (All Countries)</option>
+        <option value="Bangladesh">Bangladesh</option>
+        <option value="India">India</option>
+        <option value="USA">USA</option>
+      </select>
+    </div>
+
+    <div class="action-buttons">
+      <button id="startBtn" class="btn btn-success" disabled>► START</button>
+      <button id="nextBtn" class="btn btn-secondary" disabled>NEXT ➔</button>
+    </div>
+  </footer>
+
   <script type="module" src="script.js"></script>
 </body>
 </html>
