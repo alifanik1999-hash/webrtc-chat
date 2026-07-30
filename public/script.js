@@ -2,7 +2,8 @@ import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.
 import { 
   getAuth, 
   GoogleAuthProvider, 
-  signInWithPopup, 
+  signInWithRedirect, 
+  getRedirectResult,
   signOut, 
   onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -47,16 +48,22 @@ const countrySelect = document.getElementById('countrySelect');
 const chatInput = document.getElementById('chatInput');
 const sendBtn = document.getElementById('sendBtn');
 
-/* Auth Handlers */
+/* Auth Handlers (Mobile Friendly Redirect) */
 if (loginBtn) {
   loginBtn.addEventListener('click', async () => {
     try {
-      await signInWithPopup(auth, provider);
+      if (statusText) statusText.innerText = "Redirecting to Google Sign-in...";
+      await signInWithRedirect(auth, provider);
     } catch (error) {
-      alert("Sign in failed: " + error.message);
+      alert("Sign in error: " + error.message);
     }
   });
 }
+
+// Handle Redirect Return
+getRedirectResult(auth).catch((error) => {
+  console.error("Redirect Login Error:", error);
+});
 
 if (logoutBtn) {
   logoutBtn.addEventListener('click', () => signOut(auth));
@@ -117,7 +124,7 @@ const rtcConfig = {
   iceCandidatePoolSize: 10
 };
 
-/* Noise Reduction & Clear Audio Setup */
+/* Noise Reduction & Audio Setup */
 async function startLocalMedia() {
   if (!localStream) {
     try {
@@ -297,7 +304,7 @@ function disableChat() {
   if (sendBtn) sendBtn.disabled = true;
 }
 
-/* WebRTC Signaling & Connection Stability Logic */
+/* WebRTC Signaling & Connection Logic */
 async function createPeerConnection() {
   closePeerConnection();
   peerConnection = new RTCPeerConnection(rtcConfig);
@@ -313,7 +320,6 @@ async function createPeerConnection() {
     }
   };
 
-  /* Connection Disconnect Auto Handler */
   peerConnection.oniceconnectionstatechange = () => {
     if (peerConnection) {
       const state = peerConnection.iceConnectionState;
