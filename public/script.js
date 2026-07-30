@@ -30,7 +30,7 @@ const userPhotoDisplay = document.getElementById('userPhoto');
 const loginBtn = document.getElementById('loginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 
-/* Action Control Elements */
+/* Control Elements */
 const reportBtn = document.getElementById('reportBtn');
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
@@ -41,14 +41,13 @@ const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
 const muteMicBtn = document.getElementById('muteMicBtn');
 const toggleCamBtn = document.getElementById('toggleCamBtn');
-const languageSelect = document.getElementById('languageSelect');
 const countrySelect = document.getElementById('countrySelect');
 
-/* Chat DOM Elements */
+/* Chat Elements */
 const chatInput = document.getElementById('chatInput');
 const sendBtn = document.getElementById('sendBtn');
 
-/* Auth Logic */
+/* Auth Handlers */
 if (loginBtn) {
   loginBtn.addEventListener('click', async () => {
     try {
@@ -88,7 +87,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-/* WebRTC Setup */
+/* WebRTC & Socket Setup */
 const socket = io({ transports: ['websocket', 'polling'] });
 let localStream = null;
 let peerConnection = null;
@@ -138,7 +137,7 @@ async function startLocalMedia() {
 
 document.addEventListener('DOMContentLoaded', startLocalMedia);
 
-/* Mic and Cam Controls */
+/* Mic and Camera Toggle */
 if (muteMicBtn) {
   muteMicBtn.addEventListener('click', () => {
     if (localStream) {
@@ -165,7 +164,7 @@ if (toggleCamBtn) {
   });
 }
 
-/* Chat Handling */
+/* Chat Logic */
 function sendMessage() {
   const message = chatInput.value.trim();
   if (message && currentRoomId) {
@@ -185,9 +184,9 @@ socket.on('receive-message', ({ message }) => {
   if (statusText) statusText.innerText = `Partner: ${message}`;
 });
 
-/* Control Buttons Handlers */
+/* Control Action Handlers */
 
-// 1. Report Button
+// Report Button
 if (reportBtn) {
   reportBtn.addEventListener('click', () => {
     if (currentRoomId) {
@@ -200,15 +199,14 @@ if (reportBtn) {
   });
 }
 
-// 2. Start Button
+// Start Button
 if (startBtn) {
   startBtn.addEventListener('click', async () => {
     await startLocalMedia();
-    const language = languageSelect ? languageSelect.value : 'English';
     const country = countrySelect ? countrySelect.value : 'Global';
 
-    if (statusText) statusText.innerText = "Searching for a partner...";
-    socket.emit('find-match', { language, country });
+    if (statusText) statusText.innerText = `Searching for a partner from ${country}...`;
+    socket.emit('find-match', { country });
     
     startBtn.disabled = true;
     if (stopBtn) stopBtn.disabled = false;
@@ -216,7 +214,7 @@ if (startBtn) {
   });
 }
 
-// 3. Stop Button
+// Stop Function & Button
 function stopConnection() {
   if (remoteVideo) remoteVideo.srcObject = null;
   closePeerConnection();
@@ -236,7 +234,7 @@ if (stopBtn) {
   });
 }
 
-// 4. Next Button
+// Next Button
 if (nextBtn) {
   nextBtn.addEventListener('click', () => {
     if (remoteVideo) remoteVideo.srcObject = null;
@@ -249,8 +247,9 @@ if (nextBtn) {
   });
 }
 
-socket.on('start-rematch', ({ language, country }) => {
-  socket.emit('find-match', { language, country });
+/* Socket Events */
+socket.on('start-rematch', ({ country }) => {
+  socket.emit('find-match', { country });
 });
 
 socket.on('waiting', (msg) => {
@@ -292,6 +291,7 @@ function disableChat() {
   if (sendBtn) sendBtn.disabled = true;
 }
 
+/* WebRTC Signaling Logic */
 async function createPeerConnection() {
   closePeerConnection();
   peerConnection = new RTCPeerConnection(rtcConfig);
