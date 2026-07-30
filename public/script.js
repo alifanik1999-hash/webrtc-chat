@@ -44,6 +44,9 @@ const nextBtn = document.getElementById('nextBtn');
 const statusText = document.getElementById('status');
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
+const remoteVideoContainer = document.getElementById('remoteVideoContainer');
+const fullScreenBtn = document.getElementById('fullScreenBtn');
+
 const muteMicBtn = document.getElementById('muteMicBtn');
 const toggleCamBtn = document.getElementById('toggleCamBtn');
 const countrySelect = document.getElementById('countrySelect');
@@ -52,7 +55,35 @@ const onlineCountDisplay = document.getElementById('onlineCount');
 const chatInput = document.getElementById('chatInput');
 const sendBtn = document.getElementById('sendBtn');
 
-/* Redirect Logins */
+/* Audio Elements */
+const connectSound = document.getElementById('connectSound');
+const disconnectSound = document.getElementById('disconnectSound');
+
+function playSound(audioEl) {
+  if (audioEl) {
+    audioEl.currentTime = 0;
+    audioEl.play().catch(() => {}); // Browser policy fallback
+  }
+}
+
+/* Fullscreen Toggle */
+if (fullScreenBtn && remoteVideoContainer) {
+  fullScreenBtn.addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      if (remoteVideoContainer.requestFullscreen) {
+        remoteVideoContainer.requestFullscreen();
+      } else if (remoteVideoContainer.webkitRequestFullscreen) {
+        remoteVideoContainer.webkitRequestFullscreen(); // Safari
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  });
+}
+
+/* Auth Logic */
 (async function handleRedirect() {
   try {
     const result = await getRedirectResult(auth);
@@ -149,7 +180,7 @@ const rtcConfig = {
   iceCandidatePoolSize: 10
 };
 
-/* Camera and Mic Initialization */
+/* Camera & Mic Initialization */
 async function startLocalMedia() {
   if (!localStream) {
     try {
@@ -304,6 +335,8 @@ socket.on('waiting', (msg) => {
 
 socket.on('match-found', async ({ roomId, isInitiator }) => {
   if (statusText) statusText.innerText = "Connected with a partner!";
+  playSound(connectSound); // 🔊 Play Connect Sound Effect
+  
   currentRoomId = roomId;
   enableChat();
   await createPeerConnection();
@@ -357,6 +390,7 @@ async function createPeerConnection() {
       const state = peerConnection.iceConnectionState;
       if (state === 'failed' || state === 'closed') {
         if (statusText) statusText.innerText = "Connection lost. Click Next/Start to reconnect.";
+        playSound(disconnectSound); // 🔊 Play Disconnect Sound Effect
         disableChat();
         if (remoteVideo) remoteVideo.srcObject = null;
       }
@@ -413,6 +447,7 @@ async function processPendingCandidates() {
 
 socket.on('peer-disconnected', () => {
   if (statusText) statusText.innerText = "Partner disconnected. Click Next/Start to search again.";
+  playSound(disconnectSound); // 🔊 Play Disconnect Sound Effect
   if (remoteVideo) remoteVideo.srcObject = null;
   disableChat();
   closePeerConnection();
