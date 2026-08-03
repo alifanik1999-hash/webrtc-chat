@@ -169,23 +169,27 @@ let peerConnection = null;
 let currentRoomId = null;
 let pendingCandidates = [];
 
-/* Robust WebRTC Configuration with Multiple Global STUN Servers */
+/* Robust WebRTC Configuration with Xirsys TURN & Google STUN Servers */
 const rtcConfig = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'stun:stun3.l.google.com:19302' },
-    { urls: 'stun:stun4.l.google.com:19302' },
     {
-      urls: "turn:talk-with-world.metered.live:80",
-      username: "d2d148e6efef2cfd01e1471d",
-      credential: "7gA+e532a/4Q9H2d"
+      urls: [
+        "stun:bn-turn1.xirsys.com"
+      ]
     },
     {
-      urls: "turn:talk-with-world.metered.live:443",
-      username: "d2d148e6efef2cfd01e1471d",
-      credential: "7gA+e532a/4Q9H2d"
+      username: "dTphM5w6LIidJ9IepeF09mNhc5HwWXNaaqj72g4wEClkcpi6uTxB3aXenQU5qNumAAAAAGpV5UxhbG1yW5paw==",
+      credential: "00fe1580-8ed5-11f1-ac84-0242ac140004",
+      urls: [
+        "turn:bn-turn1.xirsys.com:80?transport=udp",
+        "turn:bn-turn1.xirsys.com:3478?transport=udp",
+        "turn:bn-turn1.xirsys.com:80?transport=tcp",
+        "turn:bn-turn1.xirsys.com:3478?transport=tcp",
+        "turns:bn-turn1.xirsys.com:443?transport=tcp",
+        "turns:bn-turn1.xirsys.com:5349?transport=tcp"
+      ]
     }
   ],
   iceCandidatePoolSize: 10
