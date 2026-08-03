@@ -81,7 +81,7 @@ if (fullScreenBtn && fullScreenContainer) {
   });
 }
 
-/* Auth Logic */
+/* Auth Logic - Optimized for Mobile & Direct Links */
 (async function initAuth() {
   try {
     await setPersistence(auth, browserLocalPersistence);
@@ -105,7 +105,8 @@ if (loginBtn) {
     try {
       await setPersistence(auth, browserLocalPersistence);
       provider.setCustomParameters({ prompt: 'select_account' });
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      
+      const isMobile = /iPhone|iPad|iPod|Android|FBAN|FBAV|Instagram/i.test(navigator.userAgent);
       if (isMobile) {
         await signInWithRedirect(auth, provider);
       } else {
