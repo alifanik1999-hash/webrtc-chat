@@ -3,6 +3,8 @@ const http = require('http');
 const { Server } = require('socket.io');
 
 const app = express();
+app.set('trust proxy', true); // Render বা প্রক্সি সার্ভারের জন্য রিয়েল IP পেতে এটি জরুরি
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: "*" }
@@ -32,10 +34,8 @@ io.on('connection', (socket) => {
 
   // ৩. পার্টনার খোঁজার লজিক (Matchmaking)
   socket.on('find-match', ({ country }) => {
-    // আগের কিউতে থাকলে সরিয়ে ফেলা
     waitingQueue = waitingQueue.filter(user => user.socketId !== socket.id);
 
-    // উপযুক্ত পার্টনার খোঁজা
     const matchIndex = waitingQueue.findIndex(user => {
       if (country === 'Global' || user.country === 'Global') return true;
       return user.country === country;
@@ -53,7 +53,6 @@ io.on('connection', (socket) => {
         socket.emit('match-found', { roomId, isInitiator: true });
         partnerSocket.emit('match-found', { roomId, isInitiator: false });
       } else {
-        // যদি পার্টনার অলরেডি ডিসকানেক্ট হয়ে থাকে, তবে বর্তমান ইউজারকে কিউতে যুক্ত করুন
         waitingQueue.push({ socketId: socket.id, country });
         socket.emit('waiting', `Searching for a partner from ${country}...`);
       }
@@ -81,7 +80,6 @@ io.on('connection', (socket) => {
         if (id !== socket.id) {
           userReportCounts[id] = (userReportCounts[id] || 0) + 1;
 
-          // ৩ বার বা তার বেশি রিপোর্ট খেলে ব্যান
           if (userReportCounts[id] >= 3) {
             const partnerSocket = io.sockets.sockets.get(id);
             if (partnerSocket) {
